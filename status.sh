@@ -37,10 +37,12 @@ print_cron() {
         last_run=$(date -r "$logfile" '+%a %Y-%m-%d %H:%M:%S %Z' 2>/dev/null || true)
         [[ -n "$last_run" ]] && printf "  %-14s %s\n" "Log updated:" "$last_run"
 
-        local recent_errors
-        recent_errors=$(grep -i "error\|exception\|traceback" "$logfile" 2>/dev/null | tail -3 || true)
+        # Only show errors from the most recent run (lines dated the same day as the log mtime)
+        local run_date recent_errors
+        run_date=$(date -r "$logfile" '+%Y-%m-%d' 2>/dev/null || true)
+        recent_errors=$(grep "^$run_date" "$logfile" 2>/dev/null | grep -i "error\|exception\|traceback" | tail -3 || true)
         if [[ -n "$recent_errors" ]]; then
-            echo -e "  ${RED}Recent errors:${RESET}"
+            echo -e "  ${RED}Recent errors (last run):${RESET}"
             while IFS= read -r line; do
                 echo -e "    ${DIM}${line}${RESET}"
             done <<< "$recent_errors"
