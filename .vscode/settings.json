@@ -1,0 +1,26 @@
+{
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+
+    // Bash
+    "bashIde.shellcheckArguments": "--shell=bash",
+    "bashIde.explainshellEndpoint": "",
+    "[shellscript]": {
+        "editor.defaultFormatter": "foxundermoon.shell-format",
+        "editor.tabSize": 4
+    },
+
+    // Markdown
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.rulers": []
+    },
+
+    // Files
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.associations": {
+        "*.sh": "shellscript"
+    }
+}
