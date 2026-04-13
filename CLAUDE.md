@@ -25,7 +25,7 @@ When adding a process, add the appropriate call under the correct project header
 
 Processes come from sibling repos. Currently:
 - `../usb-encrypt` — backup-usb.timer, backup-usb.service, backup-poller.service
-- `../versionpulse` — versionpulse.service
+- `../versionpulse` — versionpulse.service (system), versionpulse-autocommit.service (user)
 - `../opn-support` — opn-support-poller.service
 - `../analyzerouting` — cron job (Mondays 06:00), alerts #ops-support via opn-support/notifications/notify.py on failure
 

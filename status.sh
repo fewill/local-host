@@ -52,6 +52,61 @@ print_cron() {
     fi
 }
 
+# Print a section for one systemd user unit (--user scope).
+# Usage: print_user_unit <unit-name> <display-label> [<extra-note>]
+print_user_unit() {
+    local unit="$1"
+    local label="$2"
+    local extra="${3:-}"
+
+    echo
+    echo -e "${BOLD}▸ ${label}${RESET}${extra:+  ${DIM}(${extra})${RESET}}"
+
+    local active sub loaded result
+    active=$(systemctl --user show "$unit" --property=ActiveState --value 2>/dev/null || echo "unknown")
+    sub=$(systemctl --user show "$unit" --property=SubState --value 2>/dev/null || echo "unknown")
+    loaded=$(systemctl --user show "$unit" --property=LoadState --value 2>/dev/null || echo "unknown")
+    result=$(systemctl --user show "$unit" --property=Result --value 2>/dev/null || echo "")
+
+    local state_color="$RESET"
+    case "$active" in
+        active)   state_color="$GREEN" ;;
+        failed)   state_color="$RED" ;;
+        inactive) state_color="$YELLOW" ;;
+    esac
+
+    printf "  %-14s %b%s (%s)%b\n" "State:" "$state_color" "$active" "$sub" "$RESET"
+
+    if [[ "$loaded" != "loaded" ]]; then
+        echo -e "  ${RED}Unit not found / not loaded${RESET}"
+        return
+    fi
+
+    local exec_main_exit active_enter
+    exec_main_exit=$(systemctl --user show "$unit" --property=ExecMainExitTimestamp --value 2>/dev/null || true)
+    active_enter=$(systemctl --user show "$unit" --property=ActiveEnterTimestamp --value 2>/dev/null || true)
+
+    if [[ -n "$exec_main_exit" && "$exec_main_exit" != "n/a" && "$exec_main_exit" != "0" ]]; then
+        printf "  %-14s %s\n" "Last ran:" "$exec_main_exit"
+    elif [[ -n "$active_enter" && "$active_enter" != "n/a" && "$active_enter" != "0" ]]; then
+        printf "  %-14s %s\n" "Active since:" "$active_enter"
+    fi
+
+    if [[ -n "$result" && "$result" != "success" && "$result" != "" ]]; then
+        echo -e "  ${RED}Result: ${result}${RESET}"
+    fi
+
+    local recent_errors
+    recent_errors=$(journalctl --user -u "$unit" --since "1 hour ago" -p err -o cat --no-pager 2>/dev/null \
+        | tail -3 || true)
+    if [[ -n "$recent_errors" ]]; then
+        echo -e "  ${RED}Recent errors (last hour):${RESET}"
+        while IFS= read -r line; do
+            echo -e "    ${DIM}${line}${RESET}"
+        done <<< "$recent_errors"
+    fi
+}
+
 # Print a section for one systemd unit.
 # Usage: print_unit <unit-name> <display-label> [<extra-note>]
 print_unit() {
@@ -132,7 +187,8 @@ print_unit "backup-usb.service"    "Backup Service" "encrypted USB + S3 sync (on
 print_unit "backup-poller.service" "Backup Poller"  "SQS poller — always running"
 
 echo -e "\n${BOLD}versionpulse${RESET}"
-print_unit "versionpulse.service"  "Versionpulse"   "version log monitor + auto-commit"
+print_unit      "versionpulse.service"            "Versionpulse"        "version monitor — always running"
+print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches log file, auto-commits/pushes to GitHub — always running"
 
 echo -e "\n${BOLD}opn-support${RESET}"
 print_unit "opn-support-poller.service" "Support Poller" "Slack #ops-support channel monitor — always running"

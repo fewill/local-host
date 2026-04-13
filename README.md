@@ -24,7 +24,8 @@ Prints a grouped summary of every managed systemd service and timer — active s
 
 | Unit | Type | Purpose |
 |---|---|---|
-| `versionpulse.service` | Long-running | Monitors version log files and auto-commits changes to GitHub |
+| `versionpulse.service` | Long-running | Monitors OPN production platform versions; alerts on mismatches |
+| `versionpulse-autocommit.service` | Long-running (user) | Watches version log file for changes and auto-commits/pushes to GitHub |
 
 ### opn-support (`../opn-support`)
 
