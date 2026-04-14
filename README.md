@@ -17,7 +17,7 @@ Prints a grouped summary of every managed systemd service and timer — active s
 | Unit | Type | Purpose |
 |---|---|---|
 | `backup-usb.timer` | Timer | Triggers the backup service daily at midnight |
-| `backup-usb.service` | Oneshot | Encrypted sync to USB drive + S3 |
+| `backup-usb.service` | Oneshot | Encrypted sync to USB drive + S3 — inactive (dead) is normal; runs only when triggered by timer |
 | `backup-poller.service` | Long-running | SQS poller that listens for backup-related events |
 
 ### versionpulse (`../versionpulse`)
@@ -32,6 +32,22 @@ Prints a grouped summary of every managed systemd service and timer — active s
 | Unit | Type | Purpose |
 |---|---|---|
 | `opn-support-poller.service` | Long-running | Monitors the #ops-support Slack channel for new messages |
+
+### issr-non-nativ (`../issr-non-nativ`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `issr-non-nativ.timer` | Timer (user) | Triggers holdings return at 12:00, 19:00, and 23:00 daily |
+| `issr-non-nativ.service` | Oneshot (user) | Returns non-native holdings to internal issuers across banking platforms |
+
+### month-end (`../month-end`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `month-end-extract.timer` | Timer (user) | Triggers data extraction on the 1st of each month at 06:00 |
+| `month-end-extract.service` | Oneshot (user) | Pulls transaction data from API — inactive (dead) is normal; runs only when triggered by timer |
+| `month-end-report.timer` | Timer (user) | Triggers report generation on the 1st of each month at 07:00 |
+| `month-end-report.service` | Oneshot (user) | Generates month-end Excel reports — inactive (dead) is normal; runs only when triggered by timer |
 
 ### analyzerouting (`../analyzerouting`)
 
