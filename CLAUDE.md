@@ -6,7 +6,7 @@ This repo is a lightweight operations index for the background processes running
 
 ## What lives here
 
-- `status.sh` — the status dashboard script. Run it directly: `./status.sh`
+- `status.sh` — the status dashboard script. Run it directly: `./status.sh`, or from anywhere via the `lh-status` alias defined in `~/.bashrc`
 - `README.md` — usage and process inventory
 
 ## Conventions
