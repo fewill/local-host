@@ -193,8 +193,18 @@ print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches
 echo -e "\n${BOLD}opn-support${RESET}"
 print_unit "opn-support-poller.service" "Support Poller" "Slack #ops-support channel monitor — always running"
 
+echo -e "\n${BOLD}issr-non-nativ${RESET}"
+print_user_unit "issr-non-nativ.timer"   "Holdings Timer"   "triggers return at 12:00, 19:00, 23:00 daily"
+print_user_unit "issr-non-nativ.service" "Holdings Service" "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+
 echo -e "\n${BOLD}analyzerouting${RESET}"
 print_cron "Mondays at 06:00" "Routing Table Fetch" "/home/fewill/code/analyzerouting/logs/fetch_cron.log" "fetches FedNow/RTP/ACH routing tables weekly"
+
+echo -e "\n${BOLD}month-end${RESET}"
+print_user_unit "month-end-extract.timer"  "Extract Timer"  "triggers extraction on 1st of each month at 06:00"
+print_user_unit "month-end-extract.service" "Extract Service" "pulls transaction data from API (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+print_user_unit "month-end-report.timer"   "Report Timer"   "triggers report generation on 1st of each month at 07:00"
+print_user_unit "month-end-report.service" "Report Service"  "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
 echo
 echo -e "${DIM}── Run 'journalctl -u <unit> -f' to tail live logs ──────────────────────${RESET}"
