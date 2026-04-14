@@ -13,6 +13,11 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
+# ── summary counters ──────────────────────────────────────────────────────────
+_TOTAL=0
+_OK=0
+_FAILED=0
+
 print_header() {
     echo
     echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
@@ -32,13 +37,14 @@ print_cron() {
     echo -e "${BOLD}▸ ${label}${RESET}${extra:+  ${DIM}(${extra})${RESET}}"
     printf "  %-14s %s\n" "Schedule:" "$schedule"
 
+    local recent_errors=""
     if [[ -f "$logfile" ]]; then
         local last_run
         last_run=$(date -r "$logfile" '+%a %Y-%m-%d %H:%M:%S %Z' 2>/dev/null || true)
         [[ -n "$last_run" ]] && printf "  %-14s %s\n" "Log updated:" "$last_run"
 
         # Only show errors from the most recent run (lines dated the same day as the log mtime)
-        local run_date recent_errors
+        local run_date
         run_date=$(date -r "$logfile" '+%Y-%m-%d' 2>/dev/null || true)
         recent_errors=$(grep "^$run_date" "$logfile" 2>/dev/null | grep -i "error\|exception\|traceback" | tail -3 || true)
         if [[ -n "$recent_errors" ]]; then
@@ -49,6 +55,13 @@ print_cron() {
         fi
     else
         echo -e "  ${DIM}Log file not found: ${logfile}${RESET}"
+    fi
+
+    _TOTAL=$(( _TOTAL + 1 ))
+    if [[ -n "$recent_errors" ]]; then
+        _FAILED=$(( _FAILED + 1 ))
+    else
+        _OK=$(( _OK + 1 ))
     fi
 }
 
@@ -79,6 +92,8 @@ print_user_unit() {
 
     if [[ "$loaded" != "loaded" ]]; then
         echo -e "  ${RED}Unit not found / not loaded${RESET}"
+        _TOTAL=$(( _TOTAL + 1 ))
+        _FAILED=$(( _FAILED + 1 ))
         return
     fi
 
@@ -104,6 +119,13 @@ print_user_unit() {
         while IFS= read -r line; do
             echo -e "    ${DIM}${line}${RESET}"
         done <<< "$recent_errors"
+    fi
+
+    _TOTAL=$(( _TOTAL + 1 ))
+    if [[ "$active" == "failed" || "$result" == "failed" ]]; then
+        _FAILED=$(( _FAILED + 1 ))
+    else
+        _OK=$(( _OK + 1 ))
     fi
 }
 
@@ -136,6 +158,8 @@ print_unit() {
 
     if [[ "$loaded" != "loaded" ]]; then
         echo -e "  ${RED}Unit not found / not loaded${RESET}"
+        _TOTAL=$(( _TOTAL + 1 ))
+        _FAILED=$(( _FAILED + 1 ))
         return
     fi
 
@@ -175,6 +199,13 @@ print_unit() {
             echo -e "    ${DIM}${line}${RESET}"
         done <<< "$recent_errors"
     fi
+
+    _TOTAL=$(( _TOTAL + 1 ))
+    if [[ "$active" == "failed" || "$result" == "failed" ]]; then
+        _FAILED=$(( _FAILED + 1 ))
+    else
+        _OK=$(( _OK + 1 ))
+    fi
 }
 
 # ── main ─────────────────────────────────────────────────────────────────────
@@ -206,6 +237,14 @@ print_user_unit "month-end-extract.service" "Extract Service" "pulls transaction
 print_user_unit "month-end-report.timer"   "Report Timer"   "triggers report generation on 1st of each month at 07:00"
 print_user_unit "month-end-report.service" "Report Service"  "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
+echo
+echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
+if [[ $_FAILED -gt 0 ]]; then
+    echo -e "${BOLD}${CYAN}  Summary:${RESET} ${GREEN}${_OK} OK${RESET}  •  ${RED}${_FAILED} FAILED${RESET}  (of ${_TOTAL} total)"
+else
+    echo -e "${BOLD}${CYAN}  Summary:${RESET} ${GREEN}All ${_OK} units OK${RESET}"
+fi
+echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
 echo
 echo -e "${DIM}── Run 'journalctl -u <unit> -f' to tail live logs ──────────────────────${RESET}"
 echo
