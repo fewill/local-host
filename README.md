@@ -6,9 +6,11 @@ An index and operations dashboard for the background processes running on this m
 
 ```bash
 ./status.sh
+# or from anywhere:
+lh-status
 ```
 
-Prints a grouped summary of every managed systemd service and timer — active state, last run time, next scheduled run, and any recent errors from the journal.
+Prints a grouped summary of every managed systemd service and timer — active state, last run time, next scheduled run, and any recent errors from the journal. A summary line at the end shows total unit count and how many are OK vs. failed.
 
 ## Processes tracked
 

@@ -15,9 +15,13 @@ This repo is a lightweight operations index for the background processes running
 
 The script has two sections:
 
-1. **Helpers** — colour variables, `print_unit` (systemd), and `print_cron` (cron jobs). `print_unit` queries `systemctl show` and `journalctl`; `print_cron` takes a schedule string, display label, and log file path and reports last log modification time and any error lines.
+1. **Helpers** — colour variables, global counters (`_TOTAL`, `_OK`, `_FAILED`), and three print functions:
+   - `print_unit` — system-scope systemd units; queries `systemctl show` and `journalctl`
+   - `print_user_unit` — user-scope systemd units (`--user` flag); same queries
+   - `print_cron` — cron jobs; takes a schedule string, display label, and log file path; reports last log modification time and any error lines from the most recent run
+   Each function increments the counters before returning.
 
-2. **Main** — calls `print_unit` or `print_cron` once per tracked process, grouped under bold project-name headers.
+2. **Main** — calls the appropriate print function once per tracked process, grouped under bold project-name headers. Ends with a summary bar showing total unit count and OK vs. failed.
 
 When adding a process, add the appropriate call under the correct project header (or create a new header). Do not refactor these functions to accept arrays or config files — keep it simple and explicit.
 
