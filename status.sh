@@ -224,6 +224,9 @@ print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches
 echo -e "\n${BOLD}opn-support${RESET}"
 print_unit "opn-support-poller.service" "Support Poller" "Slack #ops-support channel monitor — always running"
 
+echo -e "\n${BOLD}slack-notify${RESET}"
+print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"
+
 echo -e "\n${BOLD}issr-non-nativ${RESET}"
 print_user_unit "issr-non-nativ.timer"   "Holdings Timer"   "triggers return at 12:00, 19:00, 23:00 daily"
 print_user_unit "issr-non-nativ.service" "Holdings Service" "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
