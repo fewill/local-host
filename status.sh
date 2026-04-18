@@ -222,7 +222,9 @@ print_unit      "versionpulse.service"            "Versionpulse"        "version
 print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches log file, auto-commits/pushes to GitHub — always running"
 
 echo -e "\n${BOLD}opn-support${RESET}"
-print_unit "opn-support-poller.service" "Support Poller" "Slack #ops-support channel monitor — always running"
+print_unit "opn-support-poller.service"          "Support Poller"   "Slack #ops-support channel monitor — always running"
+print_unit "opn-support-mailbox-import.timer"    "Mailbox Timer"    "triggers mailbox import every 15 min"
+print_unit "opn-support-mailbox-import.service"  "Mailbox Import"   "scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
 echo -e "\n${BOLD}slack-notify${RESET}"
 print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"

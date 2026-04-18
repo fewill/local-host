@@ -1,4 +1,4 @@
-# local-host
+# local-host — unified status dashboard for all background services and timers running on this machine
 
 An index and operations dashboard for the background processes running on this machine. Rather than hunting through individual project repos to check on services, run one script here to get a unified status view.
 
@@ -34,6 +34,36 @@ Prints a grouped summary of every managed systemd service and timer — active s
 | Unit | Type | Purpose |
 |---|---|---|
 | `opn-support-poller.service` | Long-running | Monitors the #ops-support Slack channel for new messages |
+| `opn-support-mailbox-import.timer` | Timer | Triggers mailbox import every 15 minutes |
+| `opn-support-mailbox-import.service` | Oneshot | Scans Thunderbird INBOX for new support-domain emails and saves as .eml — inactive (dead) is normal; runs only when triggered by timer |
+
+#### Install / re-install (opn-support-mailbox-import)
+
+```bash
+# 1. Seed state on first install.
+#    This records every current inbox message as already-seen without saving any
+#    .eml files. Without this step, the first timer run would treat all existing
+#    support-domain emails as new and dump them all into the repo root at once.
+#    Only mail that arrives after the seed is saved going forward.
+#    To reset: delete ~/.opn_mailbox_import_state and re-run --seed.
+cd /home/fewill/code/opn-support
+.venv/bin/python3 mailbox_import.py --seed
+
+# 2. Copy unit files
+sudo cp notifications/opn-support-mailbox-import.service /etc/systemd/system/
+sudo cp notifications/opn-support-mailbox-import.timer   /etc/systemd/system/
+
+# 3. Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable --now opn-support-mailbox-import.timer
+
+# 4. Verify
+sudo systemctl status opn-support-mailbox-import.timer
+```
+
+After enabling, each run drops new support emails as `.eml` files in the opn-support repo root, ready for `/opn-support` to process. Unit files are kept in `../opn-support/notifications/`.
+
+If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run exits cleanly and logs a warning — no data is read or saved. The timer retries in 15 minutes.
 
 ### issr-non-nativ (`../issr-non-nativ`)
 
