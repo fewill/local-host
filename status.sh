@@ -234,7 +234,8 @@ print_user_unit "issr-non-nativ.timer"   "Holdings Timer"   "triggers return at 
 print_user_unit "issr-non-nativ.service" "Holdings Service" "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
 echo -e "\n${BOLD}analyzerouting${RESET}"
-print_cron "Mondays at 06:00" "Routing Table Fetch" "/home/fewill/code/analyzerouting/logs/fetch_cron.log" "fetches FedNow/RTP/ACH routing tables weekly"
+print_user_unit "analyzerouting-sync.timer"   "Routing Sync Timer"   "triggers fetch + commit + push every Monday at 06:00"
+print_user_unit "analyzerouting-sync.service" "Routing Sync Service" "fetches FedNow/RTP/ACH tables and pushes to GitHub (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
 echo -e "\n${BOLD}month-end${RESET}"
 print_user_unit "month-end-extract.timer"  "Extract Timer"  "triggers extraction on 1st of each month at 06:00"
