@@ -125,6 +125,27 @@ EOF
 sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-vpn-autoconnect
 ```
 
+### 1Password autostart (`~/.config/autostart/1password.desktop`)
+
+An XDG autostart entry that launches 1Password silently at login. The app starts in the system tray without opening the main window; the SSH agent comes up immediately and prompts for unlock when first needed (git signing, service credentials).
+
+**Why it exists:** `analyzerouting-sync`, `month-end-extract`, and git commit signing all depend on the 1Password SSH agent. Without autostart, a reboot leaves the agent unavailable until the app is opened manually.
+
+**To reinstall after a fresh OS install:**
+
+```bash
+cat > ~/.config/autostart/1password.desktop << 'EOF'
+[Desktop Entry]
+Name=1Password
+Exec=/opt/1Password/1password --silent %U
+Terminal=false
+Type=Application
+Icon=1password
+StartupWMClass=1Password
+Comment=Start 1Password at login (tray, no window)
+EOF
+```
+
 ## Adding a new process
 
 1. Open `status.sh`
