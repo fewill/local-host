@@ -72,6 +72,8 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 | `issr-non-nativ.timer` | Timer (user) | Triggers holdings return at 12:00, 19:00, and 23:00 daily |
 | `issr-non-nativ.service` | Oneshot (user) | Returns non-native holdings to internal issuers across banking platforms |
 
+**VPN dependency:** resolves `walletapi.bridge.opnfi.net` which is only reachable over the VPN. Boot-time failures with DNS resolution errors indicate the VPN was not yet connected.
+
 ### month-end (`../month-end`)
 
 | Unit | Type | Purpose |
@@ -81,6 +83,8 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 | `month-end-report.timer` | Timer (user) | Triggers report generation on the 1st of each month at 07:00 |
 | `month-end-report.service` | Oneshot (user) | Generates month-end Excel reports — inactive (dead) is normal; runs only when triggered by timer |
 
+**1Password dependency:** `month-end-extract.service` resolves credentials via the 1Password desktop app. Boot-time failures with `reqwest` auth errors indicate the app was not yet open.
+
 ### analyzerouting (`../analyzerouting`)
 
 | Unit | Type | Purpose |
@@ -89,6 +93,8 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 | `analyzerouting-sync.service` | Oneshot (user) | Fetches FedNow, RTP, and ACH routing tables and pushes to GitHub; alerts #ops-support on failure — inactive (dead) is normal; runs only when triggered by timer |
 
 **VPN dependency:** this service requires the `bradley-wilkes-2024` OpenVPN connection to be active. The connection is set to autoconnect (`connection.autoconnect yes`) and the service unit includes a 60-second pre-check that waits for the VPN before proceeding. If the VPN is not up within 60 seconds, the service fails cleanly.
+
+**1Password dependency:** credentials are resolved via the 1Password desktop app (used by both the main sync script and `opn-support/notifications/notify.py` on failure). The desktop app must be running; boot-time failures with `reqwest` auth errors indicate it was not yet open.
 
 ## Adding a new process
 
