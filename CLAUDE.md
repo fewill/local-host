@@ -28,7 +28,7 @@ When adding a process, add the appropriate call under the correct project header
 ### Tracked projects
 
 Processes come from sibling repos. Currently:
-- `../usb-encrypt` — backup-usb.timer, backup-usb.service, backup-poller.service
+- `../usb-encrypt` — backup-usb.timer, backup-usb.service, backup-poller.service; service skips silently if SSD not plugged in (ConditionPathExists on LUKS UUID); only activated by timer (WantedBy=timers.target)
 - `../versionpulse` — versionpulse.service (system), versionpulse-autocommit.service (user)
 - `../opn-support` — opn-support-poller.service
 - `../issr-non-nativ` — issr-non-nativ.timer/service (user units, runs at 12:00/19:00/23:00 daily); requires VPN (DNS for walletapi.bridge.opnfi.net)

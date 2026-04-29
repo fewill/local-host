@@ -19,7 +19,7 @@ Prints a grouped summary of every managed systemd service and timer — active s
 | Unit | Type | Purpose |
 |---|---|---|
 | `backup-usb.timer` | Timer | Triggers the backup service daily at midnight |
-| `backup-usb.service` | Oneshot | Encrypted sync to USB drive + S3 — inactive (dead) is normal; runs only when triggered by timer |
+| `backup-usb.service` | Oneshot | Encrypted sync to USB drive + S3 — inactive (dead) is normal; runs only when triggered by timer. Skipped silently if SSD is not plugged in (`ConditionPathExists` on the LUKS UUID). |
 | `backup-poller.service` | Long-running | SQS poller that listens for backup-related events |
 
 ### versionpulse (`../versionpulse`)
