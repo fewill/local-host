@@ -96,6 +96,35 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 
 **1Password dependency:** credentials are resolved via the 1Password desktop app (used by both the main sync script and `opn-support/notifications/notify.py` on failure). The desktop app must be running; boot-time failures with `reqwest` auth errors indicate it was not yet open.
 
+## Machine configuration
+
+### VPN autoconnect (`/etc/NetworkManager/dispatcher.d/99-vpn-autoconnect`)
+
+A NetworkManager dispatcher script that brings up the `bradley-wilkes-2024` OpenVPN connection whenever a network interface connects. This ensures the VPN is available at boot before VPN-dependent services (`issr-non-nativ`, `analyzerouting-sync`) run.
+
+**Why it exists:** NM's built-in `connection.autoconnect yes` has a race condition at boot — the VPN sometimes comes up 3+ minutes late if the `ifstate` file isn't ready when NM first tries. The dispatcher script fires on every interface `up` event and retries cleanly.
+
+**To reinstall after a fresh OS install:**
+
+```bash
+sudo tee /etc/NetworkManager/dispatcher.d/99-vpn-autoconnect << 'EOF'
+#!/bin/bash
+INTERFACE="$1"
+ACTION="$2"
+VPN="bradley-wilkes-2024"
+
+[[ "$ACTION" != "up" ]] && exit 0
+[[ "$INTERFACE" == tun* ]] && exit 0
+
+if nmcli con show --active | grep -q "$VPN"; then
+    exit 0
+fi
+
+nmcli con up "$VPN" &
+EOF
+sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-vpn-autoconnect
+```
+
 ## Adding a new process
 
 1. Open `status.sh`

@@ -8,6 +8,7 @@ This repo is a lightweight operations index for the background processes running
 
 - `status.sh` — the status dashboard script. Run it directly: `./status.sh`, or from anywhere via the `lh-status` alias defined in `~/.bashrc`
 - `README.md` — usage and process inventory
+- `/etc/NetworkManager/dispatcher.d/99-vpn-autoconnect` — system-level NM dispatcher script (not in this repo, but documented in README.md) that brings up `bradley-wilkes-2024` OpenVPN on every interface `up` event; installed to fix a boot-time race condition where NM's built-in autoconnect came up 3+ minutes late
 
 ## Conventions
 
