@@ -32,7 +32,7 @@ Processes come from sibling repos. Currently:
 - `../versionpulse` — versionpulse.service (system), versionpulse-autocommit.service (user)
 - `../opn-support` — opn-support-poller.service
 - `../issr-non-nativ` — issr-non-nativ.timer/service (user units, runs at 12:00/19:00/23:00 daily)
-- `../analyzerouting` — cron job (Mondays 06:00), alerts #ops-support via opn-support/notifications/notify.py on failure
+- `../analyzerouting` — analyzerouting-sync.timer/service (user units, runs Mondays 06:00); requires `bradley-wilkes-2024` OpenVPN connection (set to autoconnect); service has a 60s VPN pre-check before executing
 - `../month-end` — month-end-extract.timer/service and month-end-report.timer/service (user units, run 1st of each month)
 
 When a new sibling repo has managed services, add them here and document them in README.md.

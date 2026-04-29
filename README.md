@@ -85,7 +85,10 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 
 | Unit | Type | Purpose |
 |---|---|---|
-| Cron — Mondays 06:00 | Weekly | Fetches FedNow, RTP, and ACH routing tables; alerts #ops-support on failure |
+| `analyzerouting-sync.timer` | Timer (user) | Triggers routing table sync every Monday at 06:00 |
+| `analyzerouting-sync.service` | Oneshot (user) | Fetches FedNow, RTP, and ACH routing tables and pushes to GitHub; alerts #ops-support on failure — inactive (dead) is normal; runs only when triggered by timer |
+
+**VPN dependency:** this service requires the `bradley-wilkes-2024` OpenVPN connection to be active. The connection is set to autoconnect (`connection.autoconnect yes`) and the service unit includes a 60-second pre-check that waits for the VPN before proceeding. If the VPN is not up within 60 seconds, the service fails cleanly.
 
 ## Adding a new process
 
