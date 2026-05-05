@@ -223,9 +223,13 @@ print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches
 
 echo -e "\n${BOLD}opn-support${RESET}"
 print_unit "opn-support-poller.service"          "Support Poller"   "Slack #ops-support channel monitor — always running"
+print_unit "sms_inbound_poller.service"          "SMS Inbound"      "SQS poller for Twilio inbound SMS replies — always running"
 print_unit "opn-support-mailbox-import.timer"    "Mailbox Timer"    "triggers mailbox import every 15 min"
 print_unit "opn-support-mailbox-import.service"  "Mailbox Import"   "scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 print_unit "gh-event-poller.service"             "GitHub Poller"    "watches opn-support + TransferError repos for issue comments and state changes — always running"
+
+echo -e "\n${BOLD}cancelmonitor${RESET}"
+print_unit "cancelmonitor.service" "Cancel Monitor" "OPN cancellation rate monitor — Slack alerts on threshold breach — always running"
 
 echo -e "\n${BOLD}slack-notify${RESET}"
 print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"

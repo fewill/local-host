@@ -1,6 +1,6 @@
 # local-host — unified status dashboard for all background services and timers running on this machine
 
-An index and operations dashboard for the background processes running on this machine. Rather than hunting through individual project repos to check on services, run one script here to get a unified status view.
+An index and operations dashboard for the background processes running on this AWS EC2 instance. Rather than hunting through individual project repos to check on services, run one script here to get a unified status view.
 
 ## Usage
 
@@ -34,6 +34,7 @@ Prints a grouped summary of every managed systemd service and timer — active s
 | Unit | Type | Purpose |
 |---|---|---|
 | `opn-support-poller.service` | Long-running | Monitors the #ops-support Slack channel for new messages |
+| `sms_inbound_poller.service` | Long-running | SQS poller for inbound Twilio SMS replies — writes drop files to repo root for /opn-support |
 | `opn-support-mailbox-import.timer` | Timer | Triggers mailbox import every 15 minutes |
 | `opn-support-mailbox-import.service` | Oneshot | Scans Thunderbird INBOX for new support emails (by sender domain or recipient address) and saves as .eml — inactive (dead) is normal; runs only when triggered by timer |
 
@@ -64,6 +65,14 @@ sudo systemctl status opn-support-mailbox-import.timer
 After enabling, each run drops new support emails as `.eml` files in the opn-support repo root, ready for `/opn-support` to process. A message is saved if its sender domain is in `SUPPORT_DOMAINS` or it was addressed to a monitored inbox (`support@opn.inc`, `enable@opn.inc`). Each saved message logs `Saved: <filename>  |  via <domain or address>  |  <subject>`. Unit files are kept in `../opn-support/notifications/`.
 
 If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run exits cleanly and logs a warning — no data is read or saved. The timer retries in 15 minutes.
+
+### cancelmonitor (`../cancelmonitor`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `cancelmonitor.service` | Long-running | Monitors OPN cancellation rates and sends Slack alerts when thresholds are exceeded |
+
+Deployed at `/opt/cancelmonitor` running as the `cancelmonitor` system user. Credentials loaded from `/etc/cancelmonitor/environment` (contains `OP_SERVICE_ACCOUNT_TOKEN`). Service file: `../cancelmonitor/deployment/cancelmonitor.service`.
 
 ### issr-non-nativ (`../issr-non-nativ`)
 
