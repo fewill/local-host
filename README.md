@@ -35,6 +35,8 @@ Prints a grouped summary of every managed systemd service and timer — active s
 |---|---|---|
 | `opn-support-poller.service` | Long-running | Monitors the #ops-support Slack channel for new messages |
 | `sms_inbound_poller.service` | Long-running | SQS poller for inbound Twilio SMS replies — writes drop files to repo root for /opn-support |
+
+**AWS backend (account 864899860638, us-east-2):** Twilio webhook → API Gateway `sms-notify-api` (ID: `0kb5uecrik`) → Lambda `sms-notify-handler` → SQS queue `sms-notify-events`. The local `sms_inbound_poller.service` polls that queue. IAM role: `backup-lambda-role`.
 | `opn-support-mailbox-import.timer` | Timer | Triggers mailbox import every 15 minutes |
 | `opn-support-mailbox-import.service` | Oneshot | Scans Thunderbird INBOX for new support emails (by sender domain or recipient address) and saves as .eml — inactive (dead) is normal; runs only when triggered by timer |
 
@@ -65,6 +67,14 @@ sudo systemctl status opn-support-mailbox-import.timer
 After enabling, each run drops new support emails as `.eml` files in the opn-support repo root, ready for `/opn-support` to process. A message is saved if its sender domain is in `SUPPORT_DOMAINS` or it was addressed to a monitored inbox (`support@opn.inc`, `enable@opn.inc`). Each saved message logs `Saved: <filename>  |  via <domain or address>  |  <subject>`. Unit files are kept in `../opn-support/notifications/`.
 
 If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run exits cleanly and logs a warning — no data is read or saved. The timer retries in 15 minutes.
+
+### slack-notify (`../slack-notify`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `slack-notify-poller.service` | Long-running | Polls for OPN Assistant DM notifications and fires desktop alerts — always running |
+
+**AWS backend (account 864899860638, us-east-2):** The slack-notify infrastructure — SQS queues and any Lambda components — runs in AWS account 864899860638. The local systemd service polls those queues and delivers desktop notifications.
 
 ### cancelmonitor (`../cancelmonitor`)
 
