@@ -234,6 +234,9 @@ print_unit "cancelmonitor.service" "Cancel Monitor" "OPN cancellation rate monit
 echo -e "\n${BOLD}slack-notify${RESET}"
 print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"
 
+echo -e "\n${BOLD}bank-core-config-tests${RESET}"
+print_unit "rfp_poller.service" "RFP Poller" "SQS poller — auto-accepts inbound OPN RFPs, Slack DM on accept/update — always running"
+
 echo -e "\n${BOLD}issr-non-nativ${RESET}"
 print_user_unit "issr-non-nativ.timer"   "Holdings Timer"   "triggers return at 12:00, 19:00, 23:00 daily"
 print_user_unit "issr-non-nativ.service" "Holdings Service" "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
