@@ -104,21 +104,21 @@ Deployed at `/opt/cancelmonitor` running as the `cancelmonitor` system user. Cre
 
 **1Password dependency:** `month-end-extract.service` resolves credentials via the 1Password desktop app. Boot-time failures with `reqwest` auth errors indicate the app was not yet open.
 
-### graphana-logs (`../graphana-logs`)
+### grafana-logs (`../grafana-logs`)
 
 | Unit | Type | Purpose |
 |---|---|---|
-| `graphana-logs-monitor.service` | Long-running (user) | Polls Loki every 15 minutes for duplicate credit requests; sends Slack alert to #opn-support and drops `.eml` file in `../opn-support` root |
+| `grafana-logs-monitor.service` | Long-running (user) | Polls Loki every 15 minutes for duplicate credit requests; sends Slack alert to #opn-support and drops `.eml` file in `../opn-support` root |
 
 Credentials loaded from `.env` in the repo root (contains `OP_SERVICE_ACCOUNT_TOKEN`). Loki credentials resolved from 1Password at startup.
 
 #### Install / re-install
 
 ```bash
-cp /home/fewill/code/graphana-logs/graphana-logs-monitor.service ~/.config/systemd/user/
+cp /home/fewill/code/grafana-logs/grafana-logs-monitor.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now graphana-logs-monitor.service
-systemctl --user status graphana-logs-monitor.service
+systemctl --user enable --now grafana-logs-monitor.service
+systemctl --user status grafana-logs-monitor.service
 ```
 
 ### analyzerouting (`../analyzerouting`)
