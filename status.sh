@@ -238,6 +238,10 @@ echo -e "\n${BOLD}issr-non-nativ${RESET}"
 print_user_unit "issr-non-nativ.timer"   "Holdings Timer"   "triggers return at 12:00, 19:00, 23:00 daily"
 print_user_unit "issr-non-nativ.service" "Holdings Service" "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
+echo -e "\n${BOLD}rcnt-xfer-anlsys${RESET}"
+print_user_unit "waiting-monitor.timer"   "Waiting Monitor Timer"   "triggers waiting transfer scan every 15 min"
+print_user_unit "waiting-monitor.service" "Waiting Monitor Service" "detects stuck RTP/FedNow credits, drops alert to opn-support (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+
 echo -e "\n${BOLD}grafana-logs${RESET}"
 print_user_unit "grafana-logs-monitor.service" "Grafana Logs Monitor" "polls Loki every 15 min for duplicate credit requests — always running"
 
