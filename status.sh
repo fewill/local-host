@@ -254,6 +254,8 @@ print_user_unit "month-end-extract.timer"  "Extract Timer"  "triggers extraction
 print_user_unit "month-end-extract.service" "Extract Service" "pulls transaction data from API (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 print_user_unit "month-end-report.timer"   "Report Timer"   "triggers report generation on 1st of each month at 07:00"
 print_user_unit "month-end-report.service" "Report Service"  "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+print_user_unit "weekly-rtp-funding-report.timer"   "Weekly RTP Funding Timer"   "fires Thu + Fri at 06:30 CT; wrapper gates on delivery date (holiday-aware)"
+print_user_unit "weekly-rtp-funding-report.service" "Weekly RTP Funding Service" "generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day"
 
 echo
 echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
