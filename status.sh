@@ -218,8 +218,7 @@ print_unit "backup-usb.service"    "Backup Service" "encrypted USB + S3 sync (on
 print_unit "backup-poller.service" "Backup Poller"  "SQS poller — always running"
 
 echo -e "\n${BOLD}versionpulse${RESET}"
-print_unit      "versionpulse.service"            "Versionpulse"        "version monitor — always running"
-print_user_unit "versionpulse-autocommit.service" "Versionpulse Commit" "watches log file, auto-commits/pushes to GitHub — always running"
+echo -e "  ${DIM}Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpulse-autocommit.service. SSH: versionpulse-aws${RESET}"
 
 echo -e "\n${BOLD}opn-support${RESET}"
 print_unit "opn-support-poller.service"          "Support Poller"   "Slack #ops-support channel monitor — always running"
