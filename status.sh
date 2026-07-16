@@ -226,6 +226,7 @@ print_unit "sms_inbound_poller.service"          "SMS Inbound"      "SQS poller 
 print_unit "opn-support-mailbox-import.timer"    "Mailbox Timer"    "triggers mailbox import every 15 min"
 print_unit "opn-support-mailbox-import.service"  "Mailbox Import"   "scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 print_unit "gh-event-poller.service"             "GitHub Poller"    "watches opn-support + TransferError repos for issue comments and state changes — always running"
+print_unit "opn-support-rtp-funding-watcher.service" "RTP Funding Watcher" "inotify watch for rtp-funding-*.json drops from month-end; drafts delivery under automated-deliveries/, Slack-notifies #ops-support — always running"
 
 echo -e "\n${BOLD}slack-notify${RESET}"
 print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"
@@ -253,7 +254,7 @@ print_user_unit "month-end-extract.timer"  "Extract Timer"  "triggers extraction
 print_user_unit "month-end-extract.service" "Extract Service" "pulls transaction data from API (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 print_user_unit "month-end-report.timer"   "Report Timer"   "triggers report generation on 1st of each month at 07:00"
 print_user_unit "month-end-report.service" "Report Service"  "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
-print_user_unit "weekly-rtp-funding-report.timer"   "Weekly RTP Funding Timer"   "fires Thu + Fri at 06:30 CT; wrapper gates on delivery date (holiday-aware)"
+print_user_unit "weekly-rtp-funding-report.timer"   "Weekly RTP Funding Timer"   "fires Thu + Fri at 15:50 CT (2:50pm MT); wrapper gates on delivery date (holiday-aware)"
 print_user_unit "weekly-rtp-funding-report.service" "Weekly RTP Funding Service" "generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day"
 
 echo
