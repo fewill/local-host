@@ -140,11 +140,12 @@ print_unit() {
     echo -e "${BOLD}▸ ${label}${RESET}${extra:+  ${DIM}(${extra})${RESET}}"
 
     # Pull the fields we care about in one pass
-    local active sub loaded last_trigger next_trigger result
+    local active sub loaded last_trigger next_trigger result unit_type
     active=$(systemctl show "$unit" --property=ActiveState --value 2>/dev/null || echo "unknown")
     sub=$(systemctl show "$unit" --property=SubState --value 2>/dev/null || echo "unknown")
     loaded=$(systemctl show "$unit" --property=LoadState --value 2>/dev/null || echo "unknown")
     result=$(systemctl show "$unit" --property=Result --value 2>/dev/null || echo "")
+    unit_type=$(systemctl show "$unit" --property=Type --value 2>/dev/null || echo "")
 
     # Colour the state
     local state_color="$RESET"
@@ -184,17 +185,51 @@ print_unit() {
         fi
     fi
 
+    # Oneshot units sit at "inactive (dead)" between runs, so the state line says
+    # nothing about whether the last run worked. Surface when it finished and the
+    # code it exited with.
+    if [[ "$unit_type" == "oneshot" ]]; then
+        if [[ "$active" == "activating" || "$active" == "active" ]]; then
+            # Mid-run: ExecMainStatus is reset to 0 at start and InactiveEnterTimestamp
+            # still points at the *previous* run, so reporting either here would
+            # claim success for a run that has not finished.
+            printf "  %-14s %s\n" "Last run:" "in progress — result pending"
+        else
+            local inactive_enter exit_status
+            inactive_enter=$(systemctl show "$unit" --property=InactiveEnterTimestamp --value 2>/dev/null || true)
+            exit_status=$(systemctl show "$unit" --property=ExecMainStatus --value 2>/dev/null || true)
+
+            if [[ -n "$inactive_enter" && "$inactive_enter" != "n/a" && "$inactive_enter" != "0" ]]; then
+                printf "  %-14s %s\n" "Finished:" "$inactive_enter"
+            fi
+            if [[ -n "$exit_status" ]]; then
+                if [[ "$exit_status" == "0" ]]; then
+                    printf "  %-14s %b%s%b\n" "Last exit:" "$GREEN" "0 (success)" "$RESET"
+                else
+                    printf "  %-14s %b%s%b\n" "Last exit:" "$RED" "${exit_status} (failed)" "$RESET"
+                fi
+            fi
+        fi
+    fi
+
     # Result code for oneshot services
     if [[ -n "$result" && "$result" != "success" && "$result" != "" ]]; then
         echo -e "  ${RED}Result: ${result}${RESET}"
     fi
 
-    # Last few journal lines (errors preferred, else tail)
-    local recent_errors
-    recent_errors=$(journalctl -u "$unit" --since "1 hour ago" -p err -o cat --no-pager 2>/dev/null \
+    # Last few journal lines (errors preferred, else tail).
+    # Oneshots get a 24h window: a midnight job that fails at 02:00 would be
+    # invisible in a 1h window by the time anyone looks at this in the morning.
+    local recent_errors window window_label
+    if [[ "$unit_type" == "oneshot" ]]; then
+        window="24 hours ago"; window_label="last 24h"
+    else
+        window="1 hour ago";   window_label="last hour"
+    fi
+    recent_errors=$(journalctl -u "$unit" --since "$window" -p err -o cat --no-pager 2>/dev/null \
         | tail -3 || true)
     if [[ -n "$recent_errors" ]]; then
-        echo -e "  ${RED}Recent errors (last hour):${RESET}"
+        echo -e "  ${RED}Recent errors (${window_label}):${RESET}"
         while IFS= read -r line; do
             echo -e "    ${DIM}${line}${RESET}"
         done <<< "$recent_errors"
