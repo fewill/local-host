@@ -230,6 +230,8 @@ print_unit "opn-support-rtp-funding-watcher.service" "RTP Funding Watcher" "inot
 
 echo -e "\n${BOLD}slack-notify${RESET}"
 print_unit "slack-notify-poller.service" "Slack Notify Poller" "OPN Assistant DM → desktop notification — always running"
+print_unit "poller-healthcheck.timer"    "Poller Health Timer"  "triggers poller health check every 15 min"
+print_unit "poller-healthcheck.service"  "Poller Health Check"  "verifies slack-notify/rfp/sms pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
 echo -e "\n${BOLD}bank-core-config-tests${RESET}"
 print_unit "rfp_poller.service" "RFP Poller" "SQS poller — auto-accepts inbound OPN RFPs, Slack DM on accept/update — always running"
@@ -256,6 +258,10 @@ print_user_unit "month-end-report.timer"   "Report Timer"   "triggers report gen
 print_user_unit "month-end-report.service" "Report Service"  "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 print_user_unit "weekly-rtp-funding-report.timer"   "Weekly RTP Funding Timer"   "fires Thu + Fri at 15:50 CT (2:50pm MT); wrapper gates on delivery date (holiday-aware)"
 print_user_unit "weekly-rtp-funding-report.service" "Weekly RTP Funding Service" "generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day"
+
+echo -e "\n${BOLD}onboard${RESET}"
+print_user_unit "nabc-demo-buildup.timer"   "NABC Demo Buildup Timer"   "triggers buildup run 3x/day (07:13, 13:41, 19:07)"
+print_user_unit "nabc-demo-buildup.service" "NABC Demo Buildup Service" "RTNAUTO random-amount suite against opn-cust-demo pool-backed account (oneshot) — inactive (dead) is normal; runs only when triggered by timer. Temporary, remove after the NABC demo."
 
 echo
 echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
