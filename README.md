@@ -12,6 +12,13 @@ lh-status
 
 Prints a grouped summary of every managed systemd service and timer — active state, last run time, next scheduled run, and any recent errors from the journal. A summary line at the end shows total unit count and how many are OK vs. failed.
 
+### How oneshot units are reported
+
+A oneshot sits at `inactive (dead)` between runs, so its state line says nothing about whether the last run actually worked. Two adjustments make them legible:
+
+- **`Finished:` and `Last exit:`** — the timestamp the last run ended (`InactiveEnterTimestamp`) and the code it exited with (`ExecMainStatus`), colored green for 0 and red otherwise. These only print once the unit is idle. While a run is in flight the line reads `Last run: in progress — result pending`, because systemd resets `ExecMainStatus` to 0 at start and leaves `InactiveEnterTimestamp` pointing at the *previous* run — reporting either mid-run would announce a successful run at the wrong timestamp.
+- **A 24-hour journal window**, against 1 hour for long-running services. A midnight job that fails at 02:00 is invisible in a 1-hour window by the time anyone reads the dashboard over coffee. `backup-usb.service` failed at 02:27 on 2026-08-11 and the dashboard showed clean at 09:00; that is what prompted the change. The heading states which window was used.
+
 ## Processes tracked
 
 ### usb-encrypt (`../usb-encrypt`)
@@ -73,8 +80,16 @@ If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run 
 | Unit | Type | Purpose |
 |---|---|---|
 | `slack-notify-poller.service` | Long-running | Polls for OPN Assistant DM notifications and fires desktop alerts — always running |
+| `poller-healthcheck.timer` | Timer | Triggers the poller health check every 15 min (`OnCalendar=*:0/15`) |
+| `poller-healthcheck.service` | Oneshot | Verifies all three SQS pollers are active and logging — inactive (dead) is normal; runs only when triggered by timer |
 
 **AWS backend (account 864899860638, us-east-2):** The slack-notify infrastructure — SQS queues and any Lambda components — runs in AWS account 864899860638. The local systemd service polls those queues and delivers desktop notifications.
+
+**Shared poller credentials:** `slack-notify-poller`, `rfp_poller`, and `sms_inbound_poller` all read AWS credentials from `/etc/opn-pollers.env` (`root:fewill`, mode `0640`) via `EnvironmentFile=`. The credentials belong to the `opn-poller-sqs` IAM user, scoped to `ReceiveMessage`/`DeleteMessage`/`GetQueueAttributes` on the `slack-notify-events`, `sms-notify-events`, and `opn-rfp-events` queues and nothing else. A credential failure is fatal — each poller logs `CRITICAL` and exits rather than retrying, so the unit lands in `failed` state instead of looping silently.
+
+**Poller health check** (`../slack-notify/monitoring/poller-healthcheck.sh`, installed at `/usr/local/bin/`): checks two failure shapes per poller — unit not active, and unit active but its log has gone silent past two missed hourly heartbeats (`STALE_AFTER=7200`). Alerting is deliberately slow: a service must fail continuously for `FAIL_FOR` (1h) **and** across `MIN_CHECKS` (3) consecutive runs before one alert goes to `#ops-support` via `opn-support/notifications/notify.py`, then at most once per `REMIND_AFTER` (24h). Any healthy check silently resets the counter, so restarts and reboots produce nothing. Recovery is logged to syslog only — never announced. Every observation, including suppressed ones, is visible via `journalctl -t poller-healthcheck`. Alert state lives in `/var/lib/poller-healthcheck/<unit>`.
+
+Because alerts route through `notify.py`, the same 1Password dependency noted under `grafana-logs` applies: if the desktop app is not running, Slack alerts fail and only the desktop notification and syslog entry remain.
 
 ### cancelmonitor (`../cancelmonitor`)
 
@@ -131,6 +146,41 @@ systemctl --user status grafana-logs-monitor.service
 **VPN dependency:** this service requires the `bradley-wilkes-2024` OpenVPN connection to be active. The connection is set to autoconnect (`connection.autoconnect yes`) and the service unit includes a 60-second pre-check that waits for the VPN before proceeding. If the VPN is not up within 60 seconds, the service fails cleanly.
 
 **1Password dependency:** credentials are resolved via the 1Password desktop app (used by both the main sync script and `opn-support/notifications/notify.py` on failure). The desktop app must be running; boot-time failures with `reqwest` auth errors indicate it was not yet open.
+
+### onboard (`../onboard`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `nabc-demo-buildup.timer` | Timer (user) | Triggers buildup run 1x/day (07:13 local) |
+| `nabc-demo-buildup.service` | Oneshot (user) | Runs the 9-RTN RTNAUTO withdraw-send suite with random amounts against `opn-cust-demo`'s pool-backed account (`../onboard/local-notes/nabc_demo_buildup.py`) — inactive (dead) is normal; runs only when triggered by timer |
+
+**Temporary — remove after the NABC demo.** Builds up multi-day pool-ledger and transaction history ahead of an NABC demo (week of 2026-07-25). Reduced from 3x/day to 1x/day on 2026-07-29. Sized to stay comfortably under the account's $250K/day `deposit_from_wallet` limit (~$22.5K/day expected at 1 run × 9 tx × ~$2,500 avg) — no longer expected to hit the limit at this cadence. Logs to `../onboard/local-notes/nabc_demo_buildup.log`. Credentials are plaintext Basic-Auth app creds embedded in the script (not `op://` — this job runs unattended and doesn't resolve 1Password refs), which is why the script lives in the gitignored `local-notes/` directory rather than the repo proper.
+
+#### Install / re-install
+
+```bash
+cp /home/fewill/code/onboard/local-notes/systemd/nabc-demo-buildup.service ~/.config/systemd/user/
+cp /home/fewill/code/onboard/local-notes/systemd/nabc-demo-buildup.timer   ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now nabc-demo-buildup.timer
+systemctl --user status nabc-demo-buildup.timer
+```
+
+#### Manual run
+
+```bash
+../onboard/local-notes/run_nabc_demo_buildup.sh
+```
+
+Triggers one buildup run immediately (outside the schedule) and tails its log until it finishes.
+
+#### Removal (after the demo)
+
+```bash
+systemctl --user disable --now nabc-demo-buildup.timer
+rm ~/.config/systemd/user/nabc-demo-buildup.timer ~/.config/systemd/user/nabc-demo-buildup.service
+systemctl --user daemon-reload
+```
 
 ## Machine configuration
 
