@@ -4,7 +4,7 @@ An index and operations dashboard for the background processes running on this A
 
 ## Usage
 
-**Web dashboard** (always-on, installed as a systemd `--user` service): open [http://127.0.0.1:8099](http://127.0.0.1:8099) in a browser. Auto-refreshes every 15 seconds. `GET /api/status` returns the same data as JSON; `GET /health` is a liveness probe.
+**Web dashboard** (always-on, installed as a systemd `--user` service): open [http://local-host.lan:8099](http://local-host.lan:8099) in a browser (`local-host.lan` is a `/etc/hosts` entry pointing at 127.0.0.1 — see [Machine configuration](#machine-configuration) below; `http://127.0.0.1:8099` works identically). Auto-refreshes every 15 seconds. `GET /api/status` returns the same data as JSON; `GET /health` is a liveness probe.
 
 **Terminal**:
 ```bash
@@ -343,4 +343,16 @@ Icon=1password
 StartupWMClass=1Password
 Comment=Start 1Password at login (tray, no window)
 EOF
+```
+
+### Dashboard hostname (`/etc/hosts`)
+
+A `/etc/hosts` entry mapping `local-host.lan` to `127.0.0.1`, so the web dashboard is reachable at `http://local-host.lan:8099` instead of `http://127.0.0.1:8099`. A hosts entry maps a hostname to an IP only — it doesn't remove the need for the `:8099` port.
+
+**Why it exists:** easier to remember and type than a bare loopback IP.
+
+**To reinstall after a fresh OS install:**
+
+```bash
+echo "127.0.0.1 local-host.lan" | sudo tee -a /etc/hosts
 ```
