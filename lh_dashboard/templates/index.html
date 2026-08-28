@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>local-host dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+  <header>
+    <h1>local-host dashboard</h1>
+    <div id="summary" class="summary">{{ data.tally.summary }}</div>
+  </header>
+  <main id="projects">
+    {% for project in data.projects %}
+    <section class="project">
+      <h2>{{ project.name }}</h2>
+      {% if project.note %}<div class="project-note">{{ project.note }}</div>{% endif %}
+      {% for unit in project.units %}
+      <article class="unit unit-{{ unit.color }}">
+        <div class="unit-label">{{ unit.label }}</div>
+        <div class="unit-state">{{ unit.state_display }}</div>
+        {% if unit.note %}<div class="unit-note">{{ unit.note }}</div>{% endif %}
+        {% if unit.oneshot %}
+          {% if unit.oneshot.in_progress %}
+            <div class="unit-detail">Last run: in progress — result pending</div>
+          {% else %}
+            {% if unit.oneshot.finished_at %}
+              <div class="unit-detail">Finished: {{ unit.oneshot.finished_at }}</div>
+            {% endif %}
+            {% if unit.oneshot.exit_code is not none %}
+              <div class="unit-detail {{ 'ok' if unit.oneshot.exit_ok else 'fail' }}">
+                Last exit: {{ unit.oneshot.exit_code }} ({{ 'success' if unit.oneshot.exit_ok else 'failed' }})
+              </div>
+            {% endif %}
+          {% endif %}
+        {% elif unit.active_since %}
+          <div class="unit-detail">Active since: {{ unit.active_since }}</div>
+        {% endif %}
+        {% if unit.next_run %}<div class="unit-detail">Next run: {{ unit.next_run }}</div>{% endif %}
+        {% if unit.query_error %}
+          <div class="unit-detail fail">Query error: {{ unit.query_error }}</div>
+        {% endif %}
+        {% for err in unit.recent_errors %}
+          <div class="unit-error">{{ err }}</div>
+        {% endfor %}
+      </article>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </main>
+  <footer>
+    Run 'journalctl -u &lt;unit&gt; -f' to tail live logs. Auto-refreshes every 15s.
+  </footer>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>

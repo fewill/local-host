@@ -1,0 +1,174 @@
+version: 1
+
+projects:
+  - name: usb-encrypt
+    repo: ../usb-encrypt
+    units:
+      - unit: backup-usb.timer
+        scope: system
+        label: Backup Timer
+        note: "triggers backup-usb.service daily"
+      - unit: backup-usb.service
+        scope: system
+        label: Backup Service
+        note: "encrypted USB + S3 sync (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: backup-poller.service
+        scope: system
+        label: Backup Poller
+        note: "SQS poller — always running"
+
+  - name: versionpulse
+    repo: ../versionpulse
+    note: "Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpulse-autocommit.service. SSH: versionpulse-aws"
+
+  - name: opn-support
+    repo: ../opn-support
+    units:
+      - unit: opn-support-poller.service
+        scope: system
+        label: Support Poller
+        note: "Slack #ops-support channel monitor — always running"
+      - unit: sms_inbound_poller.service
+        scope: system
+        label: SMS Inbound
+        note: "SQS poller for Twilio inbound SMS replies — always running"
+      - unit: opn-support-mailbox-import.timer
+        scope: system
+        label: Mailbox Timer
+        note: "triggers mailbox import every 15 min"
+      - unit: opn-support-mailbox-import.service
+        scope: system
+        label: Mailbox Import
+        note: "scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: gh-event-poller.service
+        scope: system
+        label: GitHub Poller
+        note: "watches opn-support + TransferError repos for issue comments and state changes — always running"
+      - unit: opn-support-rtp-funding-watcher.service
+        scope: system
+        label: RTP Funding Watcher
+        note: "inotify watch for rtp-funding-*.json drops from month-end; drafts delivery under automated-deliveries/, Slack-notifies #ops-support — always running"
+
+  - name: slack-notify
+    repo: ../slack-notify
+    units:
+      - unit: slack-notify-poller.service
+        scope: system
+        label: Slack Notify Poller
+        note: "OPN Assistant DM → desktop notification — always running"
+      - unit: poller-healthcheck.timer
+        scope: system
+        label: Poller Health Timer
+        note: "triggers poller health check every 15 min"
+      - unit: poller-healthcheck.service
+        scope: system
+        label: Poller Health Check
+        note: "verifies slack-notify/rfp/sms pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+
+  - name: bank-core-config-tests
+    repo: ../bank-core-config-tests
+    units:
+      - unit: rfp_poller.service
+        scope: system
+        label: RFP Poller
+        note: "SQS poller — auto-accepts inbound OPN RFPs, Slack DM on accept/update — always running"
+
+  - name: issr-non-nativ
+    repo: ../issr-non-nativ
+    units:
+      - unit: issr-non-nativ.timer
+        scope: user
+        label: Holdings Timer
+        note: "triggers return at 12:00, 19:00, 23:00 daily"
+      - unit: issr-non-nativ.service
+        scope: user
+        label: Holdings Service
+        note: "returns non-native holdings to internal issuers (oneshot) — inactive (dead) is normal; runs only when triggered by timer; requires VPN (DNS for walletapi.bridge.opnfi.net)"
+
+  - name: rcnt-xfer-anlsys
+    repo: ../rcnt-xfer-anlsys
+    units:
+      - unit: waiting-monitor.timer
+        scope: user
+        label: Waiting Monitor Timer
+        note: "triggers waiting transfer scan every 15 min"
+      - unit: waiting-monitor.service
+        scope: user
+        label: Waiting Monitor Service
+        note: "detects stuck RTP/FedNow credits, drops alert to opn-support (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+
+  - name: grafana-logs
+    repo: ../grafana-logs
+    units:
+      - unit: grafana-logs-monitor.service
+        scope: user
+        label: Grafana Logs Monitor
+        note: "polls Loki every 15 min for duplicate credit requests — always running"
+
+  - name: analyzerouting
+    repo: ../analyzerouting
+    units:
+      - unit: analyzerouting-sync.timer
+        scope: user
+        label: Routing Sync Timer
+        note: "triggers fetch + commit + push every Monday at 06:00"
+      - unit: analyzerouting-sync.service
+        scope: user
+        label: Routing Sync Service
+        note: "fetches FedNow/RTP/ACH tables and pushes to GitHub (oneshot) — inactive (dead) is normal; runs only when triggered by timer; requires bradley-wilkes-2024 OpenVPN and 1Password desktop"
+
+  - name: month-end
+    repo: ../month-end
+    units:
+      - unit: month-end-extract.timer
+        scope: user
+        label: Extract Timer
+        note: "triggers extraction on 1st of each month at 06:00"
+      - unit: month-end-extract.service
+        scope: user
+        label: Extract Service
+        note: "pulls transaction data from API (oneshot) — inactive (dead) is normal; runs only when triggered by timer; requires 1Password desktop"
+      - unit: month-end-report.timer
+        scope: user
+        label: Report Timer
+        note: "triggers report generation on 1st of each month at 07:00"
+      - unit: month-end-report.service
+        scope: user
+        label: Report Service
+        note: "generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: weekly-rtp-funding-report.timer
+        scope: user
+        label: Weekly RTP Funding Timer
+        note: "fires Thu + Fri at 15:50 CT (2:50pm MT); wrapper gates on delivery date (holiday-aware)"
+      - unit: weekly-rtp-funding-report.service
+        scope: user
+        label: Weekly RTP Funding Service
+        note: "generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day"
+
+  - name: onboard
+    repo: ../onboard
+    units:
+      - unit: nabc-demo-buildup.timer
+        scope: user
+        label: NABC Demo Buildup Timer
+        note: "triggers buildup run 1x/day (07:13 local)"
+      - unit: nabc-demo-buildup.service
+        scope: user
+        label: NABC Demo Buildup Service
+        note: "RTNAUTO random-amount suite against opn-cust-demo pool-backed account (oneshot) — inactive (dead) is normal; runs only when triggered by timer. Temporary, remove after the NABC demo."
+
+  - name: webhook
+    repo: ../webhook
+    units:
+      - unit: webhook.service
+        scope: user
+        label: Webhook Logger
+        note: "local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running"
+
+  - name: local-host
+    repo: .
+    units:
+      - unit: local-host-dashboard.service
+        scope: user
+        label: Dashboard Service
+        note: "this dashboard's own web service on 127.0.0.1:8099 — always running. A down dashboard can't render itself, so this entry is only meaningful when checked from lh-status or a secondary vantage point."

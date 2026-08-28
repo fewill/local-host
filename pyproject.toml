@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lh-dashboard"
+version = "2.0.0"
+description = "Local dev machine process status dashboard"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0,<4",
+    "pyyaml>=6.0,<7",
+    "waitress>=3.0,<4",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8,<9",
+    "pytest-mock>=3,<4",
+]
+
+[project.scripts]
+lh-status = "lh_dashboard.cli:main"
+lh-render-readme = "lh_dashboard.render_readme:main"
+
+[tool.setuptools.packages.find]
+include = ["lh_dashboard*"]
+
+[tool.setuptools.package-data]
+lh_dashboard = ["templates/*.html", "static/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
