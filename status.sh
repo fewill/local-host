@@ -298,6 +298,9 @@ echo -e "\n${BOLD}onboard${RESET}"
 print_user_unit "nabc-demo-buildup.timer"   "NABC Demo Buildup Timer"   "triggers buildup run 3x/day (07:13, 13:41, 19:07)"
 print_user_unit "nabc-demo-buildup.service" "NABC Demo Buildup Service" "RTNAUTO random-amount suite against opn-cust-demo pool-backed account (oneshot) — inactive (dead) is normal; runs only when triggered by timer. Temporary, remove after the NABC demo."
 
+echo -e "\n${BOLD}webhook${RESET}"
+print_user_unit "webhook.service" "Webhook Logger" "local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running"
+
 echo
 echo -e "${BOLD}${CYAN}══════════════════════════════════════════════${RESET}"
 if [[ $_FAILED -gt 0 ]]; then

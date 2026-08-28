@@ -36,6 +36,7 @@ Processes come from sibling repos. Currently:
 - `../issr-non-nativ` — issr-non-nativ.timer/service (user units, runs at 12:00/19:00/23:00 daily); requires VPN (DNS for walletapi.bridge.opnfi.net)
 - `../analyzerouting` — analyzerouting-sync.timer/service (user units, runs Mondays 06:00); requires `bradley-wilkes-2024` OpenVPN (set to autoconnect, 60s pre-check in unit); requires 1Password desktop for credentials and failure notifications
 - `../month-end` — month-end-extract.timer/service and month-end-report.timer/service (user units, run 1st of each month); month-end-extract requires 1Password desktop for credentials
+- `../webhook` — webhook.service (user unit, Flask app on 127.0.0.1:8098); logs every POST /hook/<name> to logs/<name>.jsonl + logs/all.jsonl; verifies OPN's x-jwt-signature (HS256, per-name OPN_WEBHOOK_SECRET__<NAME> env var) when configured — never rejects unsigned/invalid requests
 
 When a new sibling repo has managed services, add them here and document them in README.md.
 

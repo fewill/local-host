@@ -182,6 +182,21 @@ rm ~/.config/systemd/user/nabc-demo-buildup.timer ~/.config/systemd/user/nabc-de
 systemctl --user daemon-reload
 ```
 
+### webhook (`../webhook`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `webhook.service` | Long-running (user) | Flask HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhook testing — logs every `POST /hook/<name>` to `logs/<name>.jsonl` and `logs/all.jsonl`, verifying `x-jwt-signature` (HS256) when a matching `OPN_WEBHOOK_SECRET__<NAME>` is configured; never rejects a request |
+
+#### Install / re-install
+
+```bash
+cp /home/fewill/code/webhook/deploy/webhook.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now webhook.service
+systemctl --user status webhook.service
+```
+
 ## Machine configuration
 
 ### VPN autoconnect (`/etc/NetworkManager/dispatcher.d/99-vpn-autoconnect`)
