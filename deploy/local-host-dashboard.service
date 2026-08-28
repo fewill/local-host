@@ -1,0 +1,18 @@
+[Unit]
+Description=Local Host Dashboard — web status view for machine services
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/fewill/code/local-host
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/home/fewill/code/local-host/.venv/bin/python /home/fewill/code/local-host/run.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=local-host-dashboard
+
+[Install]
+WantedBy=default.target
