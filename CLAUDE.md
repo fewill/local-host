@@ -58,7 +58,7 @@ Run before any change to `lh_dashboard/`: `.venv/bin/pytest tests/unit tests/fun
 Processes come from sibling repos, enumerated in `config/units.yaml`:
 - `../usb-encrypt` — backup-usb.timer, backup-usb.service, backup-poller.service; service skips silently if SSD not plugged in (ConditionPathExists on LUKS UUID); only activated by timer (WantedBy=timers.target)
 - `../versionpulse` — note-only project (runs on remote EC2, nothing to check locally)
-- `../opn-support` — opn-support-poller, sms_inbound_poller, mailbox-import timer/service, gh-event-poller, opn-support-rtp-funding-watcher
+- `../opn-support` — opn-support-poller, gh-event-poller (system); opn-support-rtp-funding-watcher (user; rtp-funding-*.json and waiting-*.json drops → support.opn.inc cases). sms_inbound_poller and the mailbox-import timer/service were retired 2026-09-09
 - `../slack-notify` — slack-notify-poller, poller-healthcheck timer/service
 - `../bank-core-config-tests` — rfp_poller
 - `../issr-non-nativ` — issr-non-nativ.timer/service (user units, runs at 12:00/19:00/23:00 daily); requires VPN (DNS for walletapi.bridge.opnfi.net)

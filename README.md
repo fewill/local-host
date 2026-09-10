@@ -94,11 +94,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | Unit | Type | Purpose |
 |---|---|---|
 | `opn-support-poller.service` | Service | Slack #ops-support channel monitor — always running |
-| `sms_inbound_poller.service` | Service | SQS poller for Twilio inbound SMS replies — always running |
-| `opn-support-mailbox-import.timer` | Timer | triggers mailbox import every 15 min |
-| `opn-support-mailbox-import.service` | Service | scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 | `gh-event-poller.service` | Service | watches opn-support + TransferError repos for issue comments and state changes — always running |
-| `opn-support-rtp-funding-watcher.service` | Service | inotify watch for rtp-funding-*.json drops from month-end; drafts delivery under automated-deliveries/, Slack-notifies #ops-support — always running |
+| `opn-support-rtp-funding-watcher.service` | Service | inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly). |
 
 ### slack-notify (`../slack-notify`)
 
@@ -106,7 +103,7 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 |---|---|---|
 | `slack-notify-poller.service` | Service | OPN Assistant DM → desktop notification — always running |
 | `poller-healthcheck.timer` | Timer | triggers poller health check every 15 min |
-| `poller-healthcheck.service` | Service | verifies slack-notify/rfp/sms pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `poller-healthcheck.service` | Service | verifies slack-notify and rfp pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 
 ### bank-core-config-tests (`../bank-core-config-tests`)
 
@@ -165,6 +162,15 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 |---|---|---|
 | `webhook.service` | Service | local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running |
 
+### opn-compliance-mcp (`../opn-compliance-mcp`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `opn-compliance-assignment-reminders.timer` | Timer | triggers reminder run weekdays at 08:00 |
+| `opn-compliance-assignment-reminders.service` | Service | Slack DMs assignees with outstanding (overdue or due within 7 days) compliance assignments (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `opn-compliance-legacy-secret-activity.timer` | Timer | triggers the Loki app-activity report Mondays at 07:30 |
+| `opn-compliance-legacy-secret-activity.service` | Service | per-app Loki authentication activity joined against the newest Apps export → reports/app-activity-<date>.{md,json}; evidence for ASG-2026-0024 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+
 ### local-host (`.`)
 
 | Unit | Type | Purpose |
@@ -179,43 +185,31 @@ Context that doesn't belong in `config/units.yaml` (AWS backends, VPN/1Password 
 
 ### opn-support
 
-**AWS backend (account 864899860638, us-east-2):** Twilio webhook → API Gateway `sms-notify-api` (ID: `0kb5uecrik`) → Lambda `sms-notify-handler` → SQS queue `sms-notify-events`. The local `sms_inbound_poller.service` polls that queue. IAM role: `backup-lambda-role`.
-
-#### Install / re-install (opn-support-mailbox-import)
+Since 2026-09-09 the case record is **support.opn.inc** (source in `../ops-support`); the units here feed it. `opn-support-rtp-funding-watcher.service` is a `systemctl --user` unit (Linger is on, so it survives logout). It watches the opn-support repo root and runs a processor per drop file: `rtp-funding-*.json` (from `../month-end`) becomes a case with a drafted delivery email, and `waiting-*.json` (from `../rcnt-xfer-anlsys`) becomes a proactive case with a transfer note table. Both reach the tool through `../opn-support/scripts/support_mcp.py`, which reads the personal access token from `opn_support.pat` in `../opn-support/credentials.yml` via `op read` with `OP_SERVICE_ACCOUNT_TOKEN` from `../opn-support/.env`; that item lives in the `onboard credentials` vault, the only vault the service account can read. A token failure leaves the drop file in place for the next trigger and logs to `../opn-support/logs/rtp_funding_drop.log` / `waiting_drop.log`.
 
 ```bash
-# 1. Seed state on first install.
-#    This records every current inbox message as already-seen without saving any
-#    .eml files. Without this step, the first timer run would treat all existing
-#    support-domain emails as new and dump them all into the repo root at once.
-#    Only mail that arrives after the seed is saved going forward.
-#    To reset: delete ~/.opn_mailbox_import_state and re-run --seed.
-cd /home/fewill/code/opn-support
-.venv/bin/python3 mailbox_import.py --seed
-
-# 2. Copy unit files
-sudo cp notifications/opn-support-mailbox-import.service /etc/systemd/system/
-sudo cp notifications/opn-support-mailbox-import.timer   /etc/systemd/system/
-
-# 3. Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable --now opn-support-mailbox-import.timer
-
-# 4. Verify
-sudo systemctl status opn-support-mailbox-import.timer
+# Install / re-install (user scope)
+cp ~/code/opn-support/notifications/opn-support-rtp-funding-watcher.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now opn-support-rtp-funding-watcher.service
+systemctl --user status opn-support-rtp-funding-watcher.service
 ```
 
-After enabling, each run drops new support emails as `.eml` files in the opn-support repo root, ready for `/opn-support` to process. A message is saved if its sender domain is in `SUPPORT_DOMAINS` or it was addressed to a monitored inbox (`support@opn.inc`, `enable@opn.inc`). Each saved message logs `Saved: <filename>  |  via <domain or address>  |  <subject>`. Unit files are kept in `../opn-support/notifications/`.
+**Retired 2026-09-09:** `sms_inbound_poller.service` and `opn-support-mailbox-import.timer`/`.service` (both system scope). Inbound SMS replies and support mail now land on the case in support.opn.inc directly. The SMS AWS backend (account 864899860638, us-east-2: Twilio webhook → API Gateway `sms-notify-api` `0kb5uecrik` → Lambda `sms-notify-handler` → SQS `sms-notify-events`, IAM role `backup-lambda-role`) still exists but nothing local reads it; the retired scripts are under `../opn-support/legacy/`. Disable the units so they stop showing as failed:
 
-If Thunderbird is actively writing to the INBOX (`INBOX.lock` present), the run exits cleanly and logs a warning — no data is read or saved. The timer retries in 15 minutes.
+```bash
+sudo systemctl disable --now opn-support-mailbox-import.timer opn-support-mailbox-import.service sms_inbound_poller.service
+sudo rm /etc/systemd/system/opn-support-mailbox-import.timer /etc/systemd/system/opn-support-mailbox-import.service /etc/systemd/system/sms_inbound_poller.service
+sudo systemctl daemon-reload && sudo systemctl reset-failed
+```
 
 ### slack-notify
 
 **AWS backend (account 864899860638, us-east-2):** The slack-notify infrastructure — SQS queues and any Lambda components — runs in AWS account 864899860638. The local systemd service polls those queues and delivers desktop notifications.
 
-**Shared poller credentials:** `slack-notify-poller`, `rfp_poller`, and `sms_inbound_poller` all read AWS credentials from `/etc/opn-pollers.env` (`root:fewill`, mode `0640`) via `EnvironmentFile=`. The credentials belong to the `opn-poller-sqs` IAM user, scoped to `ReceiveMessage`/`DeleteMessage`/`GetQueueAttributes` on the `slack-notify-events`, `sms-notify-events`, and `opn-rfp-events` queues and nothing else. A credential failure is fatal — each poller logs `CRITICAL` and exits rather than retrying, so the unit lands in `failed` state instead of looping silently.
+**Shared poller credentials:** `slack-notify-poller` and `rfp_poller` read AWS credentials from `/etc/opn-pollers.env` (the retired `sms_inbound_poller` did too until 2026-09-09) (`root:fewill`, mode `0640`) via `EnvironmentFile=`. The credentials belong to the `opn-poller-sqs` IAM user, scoped to `ReceiveMessage`/`DeleteMessage`/`GetQueueAttributes` on the `slack-notify-events`, `sms-notify-events`, and `opn-rfp-events` queues and nothing else. A credential failure is fatal — each poller logs `CRITICAL` and exits rather than retrying, so the unit lands in `failed` state instead of looping silently.
 
-**Poller health check** (`../slack-notify/monitoring/poller-healthcheck.sh`, installed at `/usr/local/bin/`): checks two failure shapes per poller — unit not active, and unit active but its log has gone silent past two missed hourly heartbeats (`STALE_AFTER=7200`). Alerting is deliberately slow: a service must fail continuously for `FAIL_FOR` (1h) **and** across `MIN_CHECKS` (3) consecutive runs before one alert goes to `#ops-support` via `opn-support/notifications/notify.py`, then at most once per `REMIND_AFTER` (24h). Any healthy check silently resets the counter, so restarts and reboots produce nothing. Recovery is logged to syslog only — never announced. Every observation, including suppressed ones, is visible via `journalctl -t poller-healthcheck`. Alert state lives in `/var/lib/poller-healthcheck/<unit>`.
+**Poller health check** (`../slack-notify/monitoring/poller-healthcheck.sh`, installed at `/usr/local/bin/`): checks two failure shapes per poller (slack-notify and rfp; the sms poller was dropped from the list 2026-09-09) — unit not active, and unit active but its log has gone silent past two missed hourly heartbeats (`STALE_AFTER=7200`). Alerting is deliberately slow: a service must fail continuously for `FAIL_FOR` (1h) **and** across `MIN_CHECKS` (3) consecutive runs before one alert goes to `#ops-support` via `opn-support/notifications/notify.py`, then at most once per `REMIND_AFTER` (24h). Any healthy check silently resets the counter, so restarts and reboots produce nothing. Recovery is logged to syslog only — never announced. Every observation, including suppressed ones, is visible via `journalctl -t poller-healthcheck`. Alert state lives in `/var/lib/poller-healthcheck/<unit>`.
 
 Because alerts route through `notify.py`, the same 1Password dependency noted under `grafana-logs` applies: if the desktop app is not running, Slack alerts fail and only the desktop notification and syslog entry remain.
 

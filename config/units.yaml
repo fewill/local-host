@@ -28,26 +28,14 @@ projects:
         scope: system
         label: Support Poller
         note: "Slack #ops-support channel monitor — always running"
-      - unit: sms_inbound_poller.service
-        scope: system
-        label: SMS Inbound
-        note: "SQS poller for Twilio inbound SMS replies — always running"
-      - unit: opn-support-mailbox-import.timer
-        scope: system
-        label: Mailbox Timer
-        note: "triggers mailbox import every 15 min"
-      - unit: opn-support-mailbox-import.service
-        scope: system
-        label: Mailbox Import
-        note: "scans Thunderbird INBOX for new support emails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
       - unit: gh-event-poller.service
         scope: system
         label: GitHub Poller
         note: "watches opn-support + TransferError repos for issue comments and state changes — always running"
       - unit: opn-support-rtp-funding-watcher.service
-        scope: system
-        label: RTP Funding Watcher
-        note: "inotify watch for rtp-funding-*.json drops from month-end; drafts delivery under automated-deliveries/, Slack-notifies #ops-support — always running"
+        scope: user
+        label: Drop Watcher
+        note: "inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly)."
 
   - name: slack-notify
     repo: ../slack-notify
@@ -63,7 +51,7 @@ projects:
       - unit: poller-healthcheck.service
         scope: system
         label: Poller Health Check
-        note: "verifies slack-notify/rfp/sms pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+        note: "verifies slack-notify and rfp pollers are active and logging; alerts #ops-support after 1h of sustained failure (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
   - name: bank-core-config-tests
     repo: ../bank-core-config-tests
@@ -164,6 +152,26 @@ projects:
         scope: user
         label: Webhook Logger
         note: "local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running"
+
+  - name: opn-compliance-mcp
+    repo: ../opn-compliance-mcp
+    units:
+      - unit: opn-compliance-assignment-reminders.timer
+        scope: user
+        label: Assignment Reminder Timer
+        note: "triggers reminder run weekdays at 08:00"
+      - unit: opn-compliance-assignment-reminders.service
+        scope: user
+        label: Assignment Reminder Service
+        note: "Slack DMs assignees with outstanding (overdue or due within 7 days) compliance assignments (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: opn-compliance-legacy-secret-activity.timer
+        scope: user
+        label: Legacy Secret Activity Timer
+        note: "triggers the Loki app-activity report Mondays at 07:30"
+      - unit: opn-compliance-legacy-secret-activity.service
+        scope: user
+        label: Legacy Secret Activity Report
+        note: "per-app Loki authentication activity joined against the newest Apps export → reports/app-activity-<date>.{md,json}; evidence for ASG-2026-0024 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
   - name: local-host
     repo: .
