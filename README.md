@@ -96,6 +96,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `opn-support-poller.service` | Service | Slack #ops-support channel monitor — always running |
 | `gh-event-poller.service` | Service | watches opn-support + TransferError repos for issue comments and state changes — always running |
 | `opn-support-rtp-funding-watcher.service` | Service | inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly). |
+| `opn-support-dmarc-import.timer` | Timer | triggers opn-support-dmarc-import.service every 30 min |
+| `opn-support-dmarc-import.service` | Service | copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired |
 
 ### slack-notify (`../slack-notify`)
 
@@ -193,6 +195,14 @@ cp ~/code/opn-support/notifications/opn-support-rtp-funding-watcher.service ~/.c
 systemctl --user daemon-reload
 systemctl --user enable --now opn-support-rtp-funding-watcher.service
 systemctl --user status opn-support-rtp-funding-watcher.service
+```
+
+`opn-support-dmarc-import.timer`/`.service` (user scope, every 30 minutes) is the one inbox scan that survived the cutover: `../opn-support/scripts/import_dmarc_reports.py` reads the tail of the Thunderbird INBOX mbox, keeps the DMARC aggregate reports delivered through `dmarc-reports@opn.inc` (attachment verified to decode), and writes each once into the root of `../dmarc-reports` for the `/dmarc-triage` skill. No credentials or VPN needed; state in `~/.opn_dmarc_import_state`, log in `../opn-support/logs/dmarc_import.log`.
+
+```bash
+cp ~/code/opn-support/notifications/opn-support-dmarc-import.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now opn-support-dmarc-import.timer
 ```
 
 **Retired 2026-09-09:** `sms_inbound_poller.service` and `opn-support-mailbox-import.timer`/`.service` (both system scope). Inbound SMS replies and support mail now land on the case in support.opn.inc directly. The SMS AWS backend (account 864899860638, us-east-2: Twilio webhook → API Gateway `sms-notify-api` `0kb5uecrik` → Lambda `sms-notify-handler` → SQS `sms-notify-events`, IAM role `backup-lambda-role`) still exists but nothing local reads it; the retired scripts are under `../opn-support/legacy/`. Disable the units so they stop showing as failed:

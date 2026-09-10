@@ -36,6 +36,14 @@ projects:
         scope: user
         label: Drop Watcher
         note: "inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly)."
+      - unit: opn-support-dmarc-import.timer
+        scope: user
+        label: DMARC Import Timer
+        note: "triggers opn-support-dmarc-import.service every 30 min"
+      - unit: opn-support-dmarc-import.service
+        scope: user
+        label: DMARC Import
+        note: "copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired"
 
   - name: slack-notify
     repo: ../slack-notify
