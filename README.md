@@ -98,6 +98,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `opn-support-rtp-funding-watcher.service` | Service | inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly). |
 | `opn-support-dmarc-import.timer` | Timer | triggers opn-support-dmarc-import.service every 30 min |
 | `opn-support-dmarc-import.service` | Service | copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired |
+| `opn-support-intake-canary.timer` | Timer | triggers opn-support-intake-canary.service daily at 08:00 |
+| `opn-support-intake-canary.service` | Service | sends a probe email to support@opn.inc, verifies yesterday's turned into a case and dismisses it as noise, alerts #ops-support if one goes missing >20h (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 
 ### slack-notify (`../slack-notify`)
 
@@ -203,6 +205,14 @@ systemctl --user status opn-support-rtp-funding-watcher.service
 cp ~/code/opn-support/notifications/opn-support-dmarc-import.{service,timer} ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now opn-support-dmarc-import.timer
+```
+
+`opn-support-intake-canary.timer`/`.service` (user scope, daily at 08:00) confirms the support@opn.inc round trip is alive even on a day with no real customer mail to check `/intake-audit` against: `../opn-support/scripts/intake_canary.py` sends a probe email from bradley@opn.inc to support@opn.inc via SendGrid, verifies the prior day's probe became a case in support.opn.inc and dismisses it as noise, and posts one #ops-support alert if a probe is still missing after ~20 hours (giving up after 3 days). State in `~/.opn_intake_canary_state`, log in `../opn-support/logs/intake_canary.log`.
+
+```bash
+cp ~/code/opn-support/notifications/opn-support-intake-canary.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now opn-support-intake-canary.timer
 ```
 
 **Retired 2026-09-09:** `sms_inbound_poller.service` and `opn-support-mailbox-import.timer`/`.service` (both system scope). Inbound SMS replies and support mail now land on the case in support.opn.inc directly. The SMS AWS backend (account 864899860638, us-east-2: Twilio webhook → API Gateway `sms-notify-api` `0kb5uecrik` → Lambda `sms-notify-handler` → SQS `sms-notify-events`, IAM role `backup-lambda-role`) still exists but nothing local reads it; the retired scripts are under `../opn-support/legacy/`. Disable the units so they stop showing as failed:

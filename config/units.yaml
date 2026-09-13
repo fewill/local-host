@@ -44,6 +44,14 @@ projects:
         scope: user
         label: DMARC Import
         note: "copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired"
+      - unit: opn-support-intake-canary.timer
+        scope: user
+        label: Intake Canary Timer
+        note: "triggers opn-support-intake-canary.service daily at 08:00"
+      - unit: opn-support-intake-canary.service
+        scope: user
+        label: Intake Canary
+        note: "sends a probe email to support@opn.inc, verifies yesterday's turned into a case and dismisses it as noise, alerts #ops-support if one goes missing >20h (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
   - name: slack-notify
     repo: ../slack-notify
