@@ -98,8 +98,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `opn-support-rtp-funding-watcher.service` | Service | inotify watch on the opn-support repo root: rtp-funding-*.json (month-end) → case + drafted delivery email in support.opn.inc; waiting-*.json (rcnt-xfer-anlsys) → proactive case with a note table; Slack-notifies #ops-support — always running. Since 2026-09-09 the case record is support.opn.inc; the SMS inbound poller and the mailbox import are retired (mail and SMS replies land in the tool directly). |
 | `opn-support-dmarc-import.timer` | Timer | triggers opn-support-dmarc-import.service every 30 min |
 | `opn-support-dmarc-import.service` | Service | copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired |
-| `opn-support-intake-canary.timer` | Timer | triggers opn-support-intake-canary.service daily at 08:00 |
-| `opn-support-intake-canary.service` | Service | sends a probe email to support@opn.inc, verifies yesterday's turned into a case and dismisses it as noise, alerts #ops-support if one goes missing >20h (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `opn-support-intake-canary.timer` | Timer | triggers opn-support-intake-canary.service every 3 hours |
+| `opn-support-intake-canary.service` | Service | verifies pending probe emails to support@opn.inc and dismisses confirmed ones as noise every run; sends a new probe about once a day while healthy, every ~3h once one goes >20h late; alerts #ops-support on the same schedule, final alert and give-up at 3 days (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 
 ### slack-notify (`../slack-notify`)
 
@@ -207,7 +207,7 @@ systemctl --user daemon-reload
 systemctl --user enable --now opn-support-dmarc-import.timer
 ```
 
-`opn-support-intake-canary.timer`/`.service` (user scope, daily at 08:00) confirms the support@opn.inc round trip is alive even on a day with no real customer mail to check `/intake-audit` against: `../opn-support/scripts/intake_canary.py` sends a probe email from bradley@opn.inc to support@opn.inc via SendGrid, verifies the prior day's probe became a case in support.opn.inc and dismisses it as noise, and posts one #ops-support alert if a probe is still missing after ~20 hours (giving up after 3 days). State in `~/.opn_intake_canary_state`, log in `../opn-support/logs/intake_canary.log`.
+`opn-support-intake-canary.timer`/`.service` (user scope, every 3 hours) confirms the support@opn.inc round trip is alive even on a day with no real customer mail to check `/intake-audit` against: `../opn-support/scripts/intake_canary.py` verifies every pending probe email on each run and dismisses a confirmed one as noise, and sends a fresh probe from bradley@opn.inc to support@opn.inc via SendGrid — about once a day while healthy, but every ~3 hours once one goes unconfirmed past ~20 hours, since a rejected probe may never arrive even after the forward is fixed and only a new one can prove recovery. Alerts #ops-support on the same schedule (repeating, not just once) and gives up after 3 days. State in `~/.opn_intake_canary_state`, log in `../opn-support/logs/intake_canary.log`.
 
 ```bash
 cp ~/code/opn-support/notifications/opn-support-intake-canary.{service,timer} ~/.config/systemd/user/

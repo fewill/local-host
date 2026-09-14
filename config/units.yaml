@@ -47,11 +47,11 @@ projects:
       - unit: opn-support-intake-canary.timer
         scope: user
         label: Intake Canary Timer
-        note: "triggers opn-support-intake-canary.service daily at 08:00"
+        note: "triggers opn-support-intake-canary.service every 3 hours"
       - unit: opn-support-intake-canary.service
         scope: user
         label: Intake Canary
-        note: "sends a probe email to support@opn.inc, verifies yesterday's turned into a case and dismisses it as noise, alerts #ops-support if one goes missing >20h (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+        note: "verifies pending probe emails to support@opn.inc and dismisses confirmed ones as noise every run; sends a new probe about once a day while healthy, every ~3h once one goes >20h late; alerts #ops-support on the same schedule, final alert and give-up at 3 days (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
   - name: slack-notify
     repo: ../slack-notify
