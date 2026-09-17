@@ -100,6 +100,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `opn-support-dmarc-import.service` | Service | copies new DMARC aggregate reports from the Thunderbird INBOX into ../dmarc-reports for /dmarc-triage (oneshot) — inactive (dead) is normal; runs only when triggered by timer; the one inbox scan left after the mailbox import was retired |
 | `opn-support-intake-canary.timer` | Timer | triggers opn-support-intake-canary.service every 3 hours |
 | `opn-support-intake-canary.service` | Service | verifies pending probe emails to support@opn.inc and dismisses confirmed ones as noise every run; sends a new probe about once a day while healthy, every ~3h once one goes >20h late; alerts #ops-support on the same schedule, final alert and give-up at 3 days (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `opn-support-nagios-import.timer` | Timer | triggers opn-support-nagios-import.service every 30 min |
+| `opn-support-nagios-import.service` | Service | captures new Nagios alert emails (nagios@inf-mon1.int.wingcash.com) from the Thunderbird INBOX into ../nagios as structured records (alerts.jsonl) plus raw .eml, for outage tracking and analysis (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 
 ### slack-notify (`../slack-notify`)
 
