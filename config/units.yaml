@@ -47,11 +47,11 @@ projects:
       - unit: opn-support-intake-canary.timer
         scope: user
         label: Intake Canary Timer
-        note: "triggers opn-support-intake-canary.service every 3 hours"
+        note: "triggers opn-support-intake-canary.service weekday mornings at 6am ET"
       - unit: opn-support-intake-canary.service
         scope: user
         label: Intake Canary
-        note: "verifies pending probe emails to support@opn.inc and dismisses confirmed ones as noise every run; sends a new probe about once a day while healthy, every ~3h once one goes >20h late; alerts #ops-support on the same schedule, final alert and give-up at 3 days (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+        note: "verifies pending probe emails to support@opn.inc and dismisses confirmed ones as noise every run; skips sending a new probe if a real inbound case landed in the last 24h, otherwise sends one; alerts #ops-support starting ~20h after a probe goes missing, repeating each weekday morning it's still missing, final alert and give-up at 3 days (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
       - unit: opn-support-nagios-import.timer
         scope: user
         label: Nagios Import Timer
