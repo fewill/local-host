@@ -197,6 +197,18 @@ projects:
         label: Legacy Secret Activity Report
         note: "per-app Loki authentication activity joined against the newest Apps export → reports/app-activity-<date>.{md,json}; evidence for ASG-2026-0024 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
 
+  - name: sec-file-xfer
+    repo: ../sec-file-xfer
+    units:
+      - unit: sec-file-xfer-queue.timer
+        scope: user
+        label: File Transfer Queue Timer
+        note: "triggers sec-file-xfer-queue.service every 15 min — installed but DISABLED until the first NABANKCO send is confirmed (inactive is expected until then)"
+      - unit: sec-file-xfer-queue.service
+        scope: user
+        label: File Transfer Queue
+        note: "sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s) as its own MOVEit package using the service's queue defaults or a <file>.yml sidecar, then moves it to sent/<service>/; failures stay queued, alert #ops-support once (daily reminder, recovery line), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+
   - name: local-host
     repo: .
     units:
