@@ -203,7 +203,7 @@ projects:
       - unit: sec-file-xfer-queue.timer
         scope: user
         label: File Transfer Queue Timer
-        note: "triggers sec-file-xfer-queue.service every 15 min — installed but DISABLED until the first NABANKCO send is confirmed (inactive is expected until then)"
+        note: "triggers sec-file-xfer-queue.service every 15 min — live since 2026-10-07"
       - unit: sec-file-xfer-queue.service
         scope: user
         label: File Transfer Queue
