@@ -61,7 +61,13 @@ def render(groups: list[ProjectGroup], tally: Tally, use_color: bool = True) -> 
             if status.query_error:
                 lines.append(f"      {_c('Query error: ' + status.query_error, 'red', use_color)}")
             for err in status.recent_errors:
-                lines.append(f"      {_c(err, 'red', use_color)}")
+                lines.append(f"      {_c(f'{err.when}  {err.message}', 'red', use_color)}")
+            if status.earlier_errors:
+                lines.append(
+                    f"      {_dim('Earlier failures (before last successful run):', use_color)}"
+                )
+                for err in status.earlier_errors:
+                    lines.append(f"        {_dim(f'{err.when}  {err.message}', use_color)}")
 
     lines.append("")
     summary_color = "green" if tally.failed == 0 else "red"

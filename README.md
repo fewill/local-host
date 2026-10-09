@@ -177,6 +177,13 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `opn-compliance-legacy-secret-activity.timer` | Timer | triggers the Loki app-activity report Mondays at 07:30 |
 | `opn-compliance-legacy-secret-activity.service` | Service | per-app Loki authentication activity joined against the newest Apps export → reports/app-activity-<date>.{md,json}; evidence for ASG-2026-0024 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 
+### sec-file-xfer (`../sec-file-xfer`)
+
+| Unit | Type | Purpose |
+|---|---|---|
+| `sec-file-xfer-queue.timer` | Timer | triggers sec-file-xfer-queue.service every 15 min — live since 2026-10-07 |
+| `sec-file-xfer-queue.service` | Service | sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s) as its own MOVEit package using the service's queue defaults or a <file>.yml sidecar, then moves it to sent/<service>/; failures stay queued, alert #ops-support once (daily reminder, recovery line), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+
 ### local-host (`.`)
 
 | Unit | Type | Purpose |
@@ -305,6 +312,21 @@ cp /home/fewill/code/webhook/deploy/webhook.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now webhook.service
 systemctl --user status webhook.service
+```
+
+### sec-file-xfer
+
+`sec-file-xfer-queue.timer`/`.service` (user scope, every 15 minutes) runs `xfer.py process-queue --all` in `../sec-file-xfer`. Each file dropped in `outbox/<service>/` that has sat unchanged for 60s goes out as its own MOVEit package to the recipients in that service's `queue:` section of `config/<service>/service.yml` (today: `nabankco` → Sarah Cain, cc Todd Lovaas), or to whatever a `<file>.yml` sidecar dropped beside it says. Sent files (and sidecars) move to `sent/<service>/<timestamp>_<package id>/`; a failed file stays queued for the next run and the service exits 1, so it shows FAILED here. Failures also post to #ops-support through `../opn-support/notifications/notify.py` (needs `../opn-support/.env` `OP_SERVICE_ACCOUNT_TOKEN`), once per failing file with a daily reminder and a recovery line. A file (or service) that fails 3 runs in a row also opens a proactive support.opn.inc case owned by `nabc` through `../opn-support/scripts/support_mcp.py` (same 1Password service-account token as the drop watcher); recovery adds a note and a person closes the case. Alert/case state in `../sec-file-xfer/state/alerts.json`. An empty queue doesn't log in. Credentials are plaintext `config/<service>/credentials.yml` (git-ignored); no VPN or 1Password needed. MFA can't be answered under systemd, so an account that starts requiring it fails with a clear error. Log: `../sec-file-xfer/log/xfer.log`; journal: `journalctl --user -u sec-file-xfer-queue.service`.
+
+**Go-live:** the timer has been enabled since 2026-10-07, after the first real send to NABANKCO (package 384593521) succeeded. Files dropped without a sidecar go to Todd Lovaas with Sarah Cain cc'd.
+
+#### Install / re-install
+
+```bash
+cp ~/code/sec-file-xfer/systemd/sec-file-xfer-queue.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now sec-file-xfer-queue.timer
+systemctl --user list-timers sec-file-xfer-queue.timer
 ```
 
 ### local-host

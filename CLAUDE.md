@@ -47,6 +47,7 @@ A project with no locally-checkable unit (e.g. `versionpulse`, which runs on rem
 
 - A oneshot mid-run (`ActiveState` is `active`/`activating`) must never surface `ExecMainStatus`/`InactiveEnterTimestamp` — systemd resets/stales those at the start of a run, so reporting them mid-run misreports the *previous* run's outcome as current.
 - Journal error window: 24h for `Type=oneshot`, 1h otherwise, **regardless of scope** (`select_error_window` takes no scope parameter on purpose — that's what prevents the old bash bug, where the user-scope check hardcoded 1h for everything including user-scope oneshots, from being reintroduced). A per-unit `error_window` in the config always overrides this.
+- Journal errors carry timestamps (`journalctl -o json` → `JournalError(timestamp, when, message)`). For a oneshot whose last run succeeded, errors logged at or before that run's `InactiveEnterTimestamp` move to `earlier_errors` and render dimmed under "Earlier failures (before last successful run)" — the 24h window still shows them, but a resolved failure no longer reads as current. Mid-run, failed, or unknown last runs keep every error in `recent_errors` (`split_errors_at_success`).
 - Tally: a unit counts as FAILED if `ActiveState=failed` or `Result=failed`, or if it's not loaded on the machine at all. Recent journal errors are informational and don't affect the tally by themselves.
 
 ### Testing
@@ -68,6 +69,7 @@ Processes come from sibling repos, enumerated in `config/units.yaml`:
 - `../month-end` — month-end-extract, month-end-report, weekly-rtp-funding-report timer/service pairs; month-end-extract requires 1Password desktop for credentials
 - `../onboard` — nabc-demo-buildup.timer/service (temporary, remove after the NABC demo)
 - `../webhook` — webhook.service (user unit, Flask app on 127.0.0.1:8098); logs every POST /hook/<name> to logs/<name>.jsonl + logs/all.jsonl; verifies OPN's x-jwt-signature (HS256, per-name OPN_WEBHOOK_SECRET__<NAME> env var) when configured — never rejects unsigned/invalid requests; has its own `GET /health`
+- `../sec-file-xfer` — sec-file-xfer-queue.timer/service (user, every 15 min); sends each file dropped in `outbox/<service>/` as its own MOVEit package (NABANKCO today) and moves it to `sent/`; timer live since 2026-10-07
 - this repo — `local-host-dashboard.service`, the dashboard's own web service
 
 Full detail (purpose, dependencies, install steps) lives in `README.md`.

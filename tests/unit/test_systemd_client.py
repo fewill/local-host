@@ -1,9 +1,15 @@
+import json
 import subprocess
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lh_dashboard.systemd_client import SystemdClient, SystemdUnavailableError
+from lh_dashboard.systemd_client import (
+    SystemdClient,
+    SystemdUnavailableError,
+    journal_error_from_json,
+)
 
 
 def _completed(stdout):
@@ -95,12 +101,37 @@ def test_nonzero_exit_raises_unavailable():
             client.get_unit_properties("foo.service", "system", ["ActiveState"])
 
 
+def _journal_json(*messages: str, start_usec: int = 1_791_489_606_000_000) -> str:
+    return "".join(
+        json.dumps({"__REALTIME_TIMESTAMP": str(start_usec + i * 1_000_000), "MESSAGE": m}) + "\n"
+        for i, m in enumerate(messages)
+    )
+
+
 def test_get_recent_errors_tails_to_max_lines():
     client = SystemdClient()
-    with patch("subprocess.run", return_value=_completed("l1\nl2\nl3\nl4\n")):
-        lines = client.get_recent_errors("foo.service", "system", "1 hour ago", max_lines=2)
+    with patch("subprocess.run", return_value=_completed(_journal_json("l1", "l2", "l3", "l4"))):
+        errors = client.get_recent_errors("foo.service", "system", "1 hour ago", max_lines=2)
 
-    assert lines == ["l3", "l4"]
+    assert [e.message for e in errors] == ["l3", "l4"]
+
+
+def test_get_recent_errors_requests_json_and_keeps_timestamp():
+    client = SystemdClient()
+    usec = 1_791_489_606_410_298
+    with patch("subprocess.run", return_value=_completed(_journal_json("boom", start_usec=usec))) as run:
+        [err] = client.get_recent_errors("foo.service", "user", "24 hours ago")
+
+    cmd = run.call_args[0][0]
+    assert cmd[cmd.index("-o") + 1] == "json"
+    expected = datetime.fromtimestamp(usec / 1_000_000, tz=timezone.utc).astimezone()
+    assert datetime.fromisoformat(err.timestamp) == expected.replace(microsecond=0)
+    assert err.when == expected.strftime("%b %d %H:%M:%S")
+
+
+def test_journal_error_decodes_byte_array_message():
+    err = journal_error_from_json({"__REALTIME_TIMESTAMP": "0", "MESSAGE": list(b"caf\xc3\xa9")})
+    assert err.message == "café"
 
 
 def test_get_recent_errors_empty_output():

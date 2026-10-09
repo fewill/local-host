@@ -3,19 +3,21 @@ shelling out to the real systemctl/journalctl.
 """
 from __future__ import annotations
 
+from lh_dashboard.systemd_client import JournalError
+
 
 class FakeSystemdClient:
     def __init__(self) -> None:
         self._units: dict[tuple[str, str], dict[str, str]] = {}
-        self._errors: dict[tuple[str, str], list[str]] = {}
+        self._errors: dict[tuple[str, str], list[JournalError]] = {}
         self._timers: dict[str, list[dict]] = {"system": [], "user": []}
         self.get_recent_errors_calls: list[tuple[str, str, str, int]] = []
 
     def set_unit(self, unit: str, scope: str, **properties: str) -> None:
         self._units[(unit, scope)] = properties
 
-    def set_errors(self, unit: str, scope: str, lines: list[str]) -> None:
-        self._errors[(unit, scope)] = list(lines)
+    def set_errors(self, unit: str, scope: str, errors: list[JournalError]) -> None:
+        self._errors[(unit, scope)] = list(errors)
 
     def set_timers(self, scope: str, timers: list[dict]) -> None:
         self._timers[scope] = timers
@@ -30,7 +32,7 @@ class FakeSystemdClient:
 
     def get_recent_errors(
         self, unit: str, scope: str, since: str, max_lines: int = 3
-    ) -> list[str]:
+    ) -> list[JournalError]:
         self.get_recent_errors_calls.append((unit, scope, since, max_lines))
         lines = self._errors.get((unit, scope), [])
         return lines[-max_lines:] if max_lines else lines

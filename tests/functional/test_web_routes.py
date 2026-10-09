@@ -102,3 +102,32 @@ def test_bad_config_renders_error_page_not_500_traceback(tmp_path):
 
     assert resp.status_code == 500
     assert b"Traceback" not in resp.data
+
+
+def test_api_status_serializes_timestamped_and_earlier_errors(tmp_path):
+    from datetime import datetime
+
+    from lh_dashboard.systemd_client import JournalError
+
+    fake = FakeSystemdClient()
+    fake.set_unit(
+        "good.service", "system",
+        ActiveState="inactive", SubState="dead", LoadState="loaded",
+        Result="success", Type="oneshot", ExecMainStatus="0",
+        InactiveEnterTimestamp="Thu 2026-10-08 21:15:04 MDT",
+    )
+    dt = datetime(2026, 10, 8, 14, 0, 6).astimezone()
+    fake.set_errors("good.service", "system", [
+        JournalError(timestamp=dt.isoformat(), when="Oct 08 14:00:06", message="Failed to start"),
+    ])
+    app = create_app(config_path=_make_config(tmp_path), systemd_client=fake)
+
+    data = app.test_client().get("/api/status").get_json()
+    html = app.test_client().get("/").get_data(as_text=True)
+
+    unit = next(u for p in data["projects"] for u in p["units"] if u["unit"] == "good.service")
+    assert unit["recent_errors"] == []
+    assert unit["earlier_errors"] == [
+        {"timestamp": dt.isoformat(), "when": "Oct 08 14:00:06", "message": "Failed to start"}
+    ]
+    assert "Earlier failures" in html and "unit-error earlier" in html
