@@ -68,6 +68,8 @@ h1 {
 .unit-detail.fail, .unit-error { color: var(--fail); opacity: 1; }
 .unit-detail.ok { color: var(--ok); opacity: 1; }
 .unit-error { font-family: ui-monospace, monospace; font-size: 0.8rem; }
+.unit-error .err-when { opacity: 0.75; margin-right: 0.4em; }
+.unit-error.earlier { color: var(--dim); }
 
 footer {
   margin-top: 1.5rem;

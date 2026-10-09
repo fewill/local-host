@@ -7,12 +7,38 @@ from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol
 
 
 class SystemdUnavailableError(Exception):
     """Raised when systemctl/journalctl cannot be queried for a unit."""
+
+
+@dataclass
+class JournalError:
+    """One err-priority journal line, with when it was logged.
+
+    timestamp is local-time ISO 8601 (comparable across entries); when is the
+    short form renderers show, so a 7-hour-old error can't pass for a fresh one.
+    """
+    timestamp: str
+    when: str
+    message: str
+
+
+def journal_error_from_json(entry: dict) -> JournalError:
+    usec = int(entry.get("__REALTIME_TIMESTAMP") or 0)
+    dt = datetime.fromtimestamp(usec / 1_000_000, tz=timezone.utc).astimezone()
+    message = entry.get("MESSAGE", "")
+    if isinstance(message, list):  # journald encodes non-UTF-8 messages as byte arrays
+        message = bytes(message).decode("utf-8", errors="replace")
+    return JournalError(
+        timestamp=dt.isoformat(timespec="seconds"),
+        when=dt.strftime("%b %d %H:%M:%S"),
+        message=str(message),
+    )
 
 
 class SystemdClientProtocol(Protocol):
@@ -22,7 +48,7 @@ class SystemdClientProtocol(Protocol):
 
     def get_recent_errors(
         self, unit: str, scope: str, since: str, max_lines: int = 3
-    ) -> list[str]: ...
+    ) -> list[JournalError]: ...
 
     def list_timers(self, scope: str) -> list[dict]: ...
 
@@ -84,7 +110,7 @@ class SystemdClient:
 
     def get_recent_errors(
         self, unit: str, scope: str, since: str, max_lines: int = 3
-    ) -> list[str]:
+    ) -> list[JournalError]:
         cmd = [
             "journalctl",
             *self._scope_flag(scope),
@@ -95,12 +121,16 @@ class SystemdClient:
             "-p",
             "err",
             "-o",
-            "cat",
+            "json",
+            "--output-fields=MESSAGE",
             "--no-pager",
         ]
         stdout = self._run(cmd)
-        lines = [line for line in stdout.splitlines() if line.strip()]
-        return lines[-max_lines:] if max_lines else lines
+        entries = [
+            journal_error_from_json(json.loads(line))
+            for line in stdout.splitlines() if line.strip()
+        ]
+        return entries[-max_lines:] if max_lines else entries
 
     def list_timers(self, scope: str) -> list[dict]:
         cmd = [

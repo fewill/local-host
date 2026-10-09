@@ -60,11 +60,24 @@ function renderUnit(unit) {
     html += `<div class="unit-detail fail">Query error: ${escapeHtml(unit.query_error)}</div>`;
   }
   for (const err of unit.recent_errors || []) {
-    html += `<div class="unit-error">${escapeHtml(err)}</div>`;
+    html += errorLine(err, "");
+  }
+  if ((unit.earlier_errors || []).length) {
+    html += `<div class="unit-detail">Earlier failures (before last successful run):</div>`;
+    for (const err of unit.earlier_errors) {
+      html += errorLine(err, " earlier");
+    }
   }
 
   html += "</article>";
   return html;
+}
+
+function errorLine(err, extraClass) {
+  return (
+    `<div class="unit-error${extraClass}">` +
+    `<span class="err-when">${escapeHtml(err.when)}</span> ${escapeHtml(err.message)}</div>`
+  );
 }
 
 function escapeHtml(value) {

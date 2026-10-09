@@ -6,9 +6,10 @@ never shells out itself and can be unit-tested with a fake.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from .config import Config, UnitConfig
-from .systemd_client import SystemdClientProtocol, SystemdUnavailableError
+from .systemd_client import JournalError, SystemdClientProtocol, SystemdUnavailableError
 
 ONESHOT_WINDOW = "24 hours ago"
 DEFAULT_WINDOW = "1 hour ago"
@@ -76,6 +77,48 @@ def select_error_window(unit_type: str, override: str | None = None) -> str:
     return ONESHOT_WINDOW if unit_type == "oneshot" else DEFAULT_WINDOW
 
 
+def parse_systemd_timestamp(raw: str | None) -> datetime | None:
+    """Parse a `systemctl show` timestamp like 'Thu 2026-10-08 21:15:04 MDT'.
+
+    The zone abbreviation isn't reliably parseable, but systemctl prints these
+    in the machine's local zone, so the date and time are read as local.
+    """
+    parts = (raw or "").split()
+    if len(parts) < 3:
+        return None
+    try:
+        return datetime.strptime(f"{parts[1]} {parts[2]}", "%Y-%m-%d %H:%M:%S").astimezone()
+    except ValueError:
+        return None
+
+
+def split_errors_at_success(
+    errors: list[JournalError], oneshot: OneshotInfo | None
+) -> tuple[list[JournalError], list[JournalError]]:
+    """Split errors into (recent, earlier) around a oneshot's last successful run.
+
+    The 24h oneshot window keeps an overnight failure visible, but once a later
+    run has succeeded those lines describe a resolved problem; showing them in
+    red under "Last exit: 0 (success)" makes a healthy unit look broken. Errors
+    logged at or before the successful run's finish are "earlier". Anything
+    else (non-oneshot, mid-run, failed or unknown last run) stays recent.
+    """
+    if not oneshot or oneshot.in_progress or oneshot.exit_ok is not True:
+        return errors, []
+    finished = parse_systemd_timestamp(oneshot.finished_at)
+    if finished is None:
+        return errors, []
+    recent, earlier = [], []
+    for err in errors:
+        try:
+            logged = datetime.fromisoformat(err.timestamp)
+        except ValueError:
+            recent.append(err)
+            continue
+        (earlier if logged <= finished else recent).append(err)
+    return recent, earlier
+
+
 @dataclass
 class UnitStatus:
     unit: str
@@ -93,7 +136,9 @@ class UnitStatus:
     active_since: str | None = None
     next_run: str | None = None
     oneshot: OneshotInfo | None = None
-    recent_errors: list[str] = field(default_factory=list)
+    recent_errors: list[JournalError] = field(default_factory=list)
+    # Errors from before the oneshot's last successful run -- shown dimmed.
+    earlier_errors: list[JournalError] = field(default_factory=list)
     query_error: str | None = None
 
 
@@ -166,6 +211,7 @@ def check_unit(
     except SystemdUnavailableError as exc:
         recent_errors = []
         query_error = str(exc)
+    recent_errors, earlier_errors = split_errors_at_success(recent_errors, oneshot)
 
     next_run = None
     if timers:
@@ -191,6 +237,7 @@ def check_unit(
         next_run=next_run,
         oneshot=oneshot,
         recent_errors=recent_errors,
+        earlier_errors=earlier_errors,
         query_error=query_error,
     )
 

@@ -42,8 +42,14 @@
           <div class="unit-detail fail">Query error: {{ unit.query_error }}</div>
         {% endif %}
         {% for err in unit.recent_errors %}
-          <div class="unit-error">{{ err }}</div>
+          <div class="unit-error"><span class="err-when">{{ err.when }}</span> {{ err.message }}</div>
         {% endfor %}
+        {% if unit.earlier_errors %}
+          <div class="unit-detail">Earlier failures (before last successful run):</div>
+          {% for err in unit.earlier_errors %}
+            <div class="unit-error earlier"><span class="err-when">{{ err.when }}</span> {{ err.message }}</div>
+          {% endfor %}
+        {% endif %}
       </article>
       {% endfor %}
     </section>
