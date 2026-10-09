@@ -156,6 +156,18 @@ projects:
         scope: user
         label: Weekly RTP Funding Service
         note: "generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day"
+      - unit: daily-pool-reconciliation-report.timer
+        scope: user
+        label: Daily Pool Reconciliation Timer
+        note: "fires daily at 20:15 CT (7:15pm MT), after the 19:50 CT network-handover cutoff"
+      - unit: daily-pool-reconciliation-report.service
+        scope: user
+        label: Daily Pool Reconciliation Service
+        note: "reconciles each NABC pool-backed account (Enova, Finix) for the cycle just closed and, when every check passes, drops the workbook in ../sec-file-xfer for SFT delivery to NABC; exits 1 with no drop if a site is unavailable or any check fails (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: month-end-check-credentials.service
+        scope: user
+        label: Credentials Check
+        note: "on demand, no timer: month-end check-credentials --client nabc in the report services' environment — 1Password, then a token and one history row per OPN site (hub + every active merchant site); writes nothing; exit 1 if any site fails. Run: systemctl --user start month-end-check-credentials.service (oneshot) — inactive (dead) is normal; runs only when started by hand"
 
   - name: onboard
     repo: ../onboard

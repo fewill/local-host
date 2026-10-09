@@ -154,6 +154,9 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | `month-end-report.service` | Service | generates month-end Excel reports (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 | `weekly-rtp-funding-report.timer` | Timer | fires Thu + Fri at 15:50 CT (2:50pm MT); wrapper gates on delivery date (holiday-aware) |
 | `weekly-rtp-funding-report.service` | Service | generates NABC weekly RTP prefunding report (oneshot) — inactive (dead) is normal; runs only on delivery day |
+| `daily-pool-reconciliation-report.timer` | Timer | fires daily at 20:15 CT (7:15pm MT), after the 19:50 CT network-handover cutoff |
+| `daily-pool-reconciliation-report.service` | Service | reconciles each NABC pool-backed account (Enova, Finix) for the cycle just closed and, when every check passes, drops the workbook in ../sec-file-xfer for SFT delivery to NABC; exits 1 with no drop if a site is unavailable or any check fails (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `month-end-check-credentials.service` | Service | on demand, no timer: month-end check-credentials --client nabc in the report services' environment — 1Password, then a token and one history row per OPN site (hub + every active merchant site); writes nothing; exit 1 if any site fails. Run: systemctl --user start month-end-check-credentials.service (oneshot) — inactive (dead) is normal; runs only when started by hand |
 
 ### onboard (`../onboard`)
 
@@ -184,7 +187,8 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 | Unit | Type | Purpose |
 |---|---|---|
 | `sec-file-xfer-queue.timer` | Timer | triggers sec-file-xfer-queue.service every 15 min — live since 2026-10-07 |
-| `sec-file-xfer-queue.service` | Service | sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s) as its own MOVEit package using the service's queue defaults or a <file>.yml sidecar, then moves it to sent/<service>/; failures stay queued, alert #ops-support once (daily reminder, recovery line), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `sec-file-xfer-queue.service` | Service | sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s) as its own MOVEit package using the service's queue defaults or a <file>.yml sidecar, moves it to sent/<service>/, and posts a Sent to ... line to #ops-support per file; month-end's weekly RTP funding report skips the wait (process-queue --file, run at drop time); failures stay queued, alert #ops-support once (daily reminder; the sent line marks recovery), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `sec-file-xfer-check.service` | Service | on demand, no timer: xfer.py check-credentials in the queue's environment — SFT login, package rules, contact IDs, queue recipients, Slack read, support.opn.inc whoami; sends nothing; exit 1 if any check fails. Run: systemctl --user start sec-file-xfer-check.service (oneshot) — inactive (dead) is normal; runs only when started by hand |
 
 ### local-host (`.`)
 
@@ -255,6 +259,10 @@ Deployed at `/opt/cancelmonitor` running as the `cancelmonitor` system user. Cre
 ### month-end
 
 **1Password dependency:** `month-end-extract.service` resolves credentials via the 1Password desktop app. Boot-time failures with `reqwest` auth errors indicate the app was not yet open.
+
+**Delivery to NABC:** `daily-pool-reconciliation-report.service` (nightly, 20:15 CT) and `weekly-rtp-funding-report.service` (Friday, 15:50 CT) drop their workbooks in `../sec-file-xfer`, which sends them over the bank's SFT (see that project's units above). A failed daily reconciliation means NABC gets no workbook that night.
+
+**Credentials check:** `systemctl --user start month-end-check-credentials.service`, then `journalctl --user -u month-end-check-credentials.service -n 25 -o cat`. It's read-only and runs in the report services' environment; good to run after a reboot and on Friday before the weekly RTP funding report, alongside `sec-file-xfer-check.service`.
 
 ### grafana-logs
 

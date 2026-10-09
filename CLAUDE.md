@@ -66,7 +66,7 @@ Processes come from sibling repos, enumerated in `config/units.yaml`:
 - `../rcnt-xfer-anlsys` — waiting-monitor timer/service
 - `../grafana-logs` — grafana-logs-monitor.service
 - `../analyzerouting` — analyzerouting-sync.timer/service (user units, runs Mondays 06:00); requires `bradley-wilkes-2024` OpenVPN (set to autoconnect, 60s pre-check in unit); requires 1Password desktop for credentials and failure notifications
-- `../month-end` — month-end-extract, month-end-report, weekly-rtp-funding-report timer/service pairs; month-end-extract requires 1Password desktop for credentials
+- `../month-end` — month-end-extract, month-end-report, weekly-rtp-funding-report and daily-pool-reconciliation-report timer/service pairs, plus the on-demand month-end-check-credentials.service; month-end-extract requires 1Password desktop for credentials
 - `../onboard` — nabc-demo-buildup.timer/service (temporary, remove after the NABC demo)
 - `../webhook` — webhook.service (user unit, Flask app on 127.0.0.1:8098); logs every POST /hook/<name> to logs/<name>.jsonl + logs/all.jsonl; verifies OPN's x-jwt-signature (HS256, per-name OPN_WEBHOOK_SECRET__<NAME> env var) when configured — never rejects unsigned/invalid requests; has its own `GET /health`
 - `../sec-file-xfer` — sec-file-xfer-queue.timer/service (user, every 15 min); sends each file dropped in `outbox/<service>/` as its own MOVEit package (NABANKCO today) and moves it to `sent/`; timer live since 2026-10-07
