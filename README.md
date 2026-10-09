@@ -168,12 +168,14 @@ Running on EC2 (i-02e64f5c34c5b1e76) — both versionpulse.service and versionpu
 |---|---|---|
 | `webhook.service` | Service | local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running |
 
-### opn-compliance-mcp (`../opn-compliance-mcp`)
+### compliance-readiness (`../compliance-readiness`)
 
 | Unit | Type | Purpose |
 |---|---|---|
 | `opn-compliance-assignment-reminders.timer` | Timer | triggers reminder run weekdays at 08:00 |
 | `opn-compliance-assignment-reminders.service` | Service | Slack DMs assignees with outstanding (overdue or due within 7 days) compliance assignments (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
+| `opn-compliance-schedule-reminders.timer` | Timer | triggers schedule reminder run Mondays at 08:00 |
+| `opn-compliance-schedule-reminders.service` | Service | Slack DMs schedule owners with overdue/due-soon compliance schedules (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 | `opn-compliance-legacy-secret-activity.timer` | Timer | triggers the Loki app-activity report Mondays at 07:30 |
 | `opn-compliance-legacy-secret-activity.service` | Service | per-app Loki authentication activity joined against the newest Apps export → reports/app-activity-<date>.{md,json}; evidence for ASG-2026-0024 (oneshot) — inactive (dead) is normal; runs only when triggered by timer |
 

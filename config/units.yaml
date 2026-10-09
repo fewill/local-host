@@ -177,8 +177,8 @@ projects:
         label: Webhook Logger
         note: "local HTTP sink on 127.0.0.1:8098 for OPN/WingCash sandbox webhooks — always running"
 
-  - name: opn-compliance-mcp
-    repo: ../opn-compliance-mcp
+  - name: compliance-readiness
+    repo: ../compliance-readiness
     units:
       - unit: opn-compliance-assignment-reminders.timer
         scope: user
@@ -188,6 +188,14 @@ projects:
         scope: user
         label: Assignment Reminder Service
         note: "Slack DMs assignees with outstanding (overdue or due within 7 days) compliance assignments (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+      - unit: opn-compliance-schedule-reminders.timer
+        scope: user
+        label: Schedule Reminder Timer
+        note: "triggers schedule reminder run Mondays at 08:00"
+      - unit: opn-compliance-schedule-reminders.service
+        scope: user
+        label: Schedule Reminder Service
+        note: "Slack DMs schedule owners with overdue/due-soon compliance schedules (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
       - unit: opn-compliance-legacy-secret-activity.timer
         scope: user
         label: Legacy Secret Activity Timer
