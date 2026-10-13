@@ -187,6 +187,11 @@ def check_unit(
     oneshot: OneshotInfo | None = None
     if unit_type == "oneshot":
         oneshot = classify_oneshot(props)
+        # A failed oneshot can sit at inactive (dead) with Result=success once
+        # systemd clears the failed state (reset-failed, daemon-reload, reboot),
+        # so the last exit code is the only reliable failure signal.
+        if oneshot.exit_ok is False:
+            ok = False
         if oneshot.in_progress:
             color = "yellow"
         elif oneshot.exit_ok is True:

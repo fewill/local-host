@@ -58,3 +58,70 @@ def test_not_loaded_unit_counts_as_failed():
     assert tally.failed == 1
     assert statuses[0].ok is False
     assert "not found" in statuses[0].state_display.lower()
+
+
+def _oneshot_tally(**props):
+    fake = FakeSystemdClient()
+    fake.set_unit(
+        "job.service",
+        "user",
+        LoadState="loaded",
+        Type="oneshot",
+        **props,
+    )
+    units = [UnitConfig(unit="job.service", scope="user", label="Job", project="test")]
+    config = Config(version=1, projects=[ProjectConfig(name="test", repo=None, units=units)])
+    return StatusChecker(fake).check_all(config)
+
+
+def test_oneshot_nonzero_exit_counts_as_failed_after_state_cleared():
+    """Mirrors waiting-monitor.service on 2026-10-12: the last run exited 1,
+    but systemd reported inactive (dead) with Result=success, and the footer
+    claimed every unit was OK while the row rendered red."""
+    statuses, tally = _oneshot_tally(
+        ActiveState="inactive",
+        SubState="dead",
+        Result="success",
+        ExecMainStatus="1",
+    )
+
+    assert statuses[0].ok is False
+    assert statuses[0].color == "red"
+    assert tally.failed == 1
+    assert tally.summary() == "0 OK • 1 FAILED (of 1 total)"
+
+
+def test_oneshot_zero_exit_counts_as_ok():
+    statuses, tally = _oneshot_tally(
+        ActiveState="inactive",
+        SubState="dead",
+        Result="success",
+        ExecMainStatus="0",
+    )
+
+    assert statuses[0].ok is True
+    assert tally.summary() == "All 1 units OK"
+
+
+def test_oneshot_in_progress_is_not_failed_by_stale_exit():
+    statuses, tally = _oneshot_tally(
+        ActiveState="activating",
+        SubState="start",
+        Result="success",
+        ExecMainStatus="1",
+    )
+
+    assert statuses[0].ok is True
+    assert tally.failed == 0
+
+
+def test_oneshot_never_run_counts_as_ok():
+    statuses, tally = _oneshot_tally(
+        ActiveState="inactive",
+        SubState="dead",
+        Result="success",
+        ExecMainStatus="",
+    )
+
+    assert statuses[0].ok is True
+    assert tally.failed == 0
