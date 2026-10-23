@@ -227,7 +227,7 @@ projects:
       - unit: sec-file-xfer-queue.service
         scope: user
         label: File Transfer Queue
-        note: "sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s): nabankco as its own MOVEit package using the queue defaults or a <file>.yml sidecar, then a copy (copy_to) uploaded over SFTP by key (sft.nabankco.com:1022, host key pinned) to NABC's /ToNAB/Reports folder (nabankco-sftp) in the same run; moves each to sent/<service>/ and posts a Sent to ... line to #ops-support per delivery; month-end's weekly RTP funding report skips the wait (process-queue --file, run at drop time); failures stay queued, alert #ops-support once (daily reminder; the sent line marks recovery), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+        note: "sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s): month-end's NABC reports go to outbox/nabankco-sftp/ and are uploaded over SFTP by key (sft.nabankco.com:1022, host key pinned) to NABC's /ToNAB/Reports folder — SFTP only since 2026-10-23, no MOVEit package; files in outbox/nabankco/ (by hand) still go as MOVEit packages; moves each to sent/<service>/ and posts a Sent to ... line to #ops-support per file; month-end's weekly RTP funding report skips the wait (process-queue --file, run at drop time); failures stay queued, alert #ops-support once (daily reminder; the sent line marks recovery), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
       - unit: sec-file-xfer-check.service
         scope: user
         label: File Transfer Credentials Check
