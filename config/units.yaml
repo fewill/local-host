@@ -227,11 +227,11 @@ projects:
       - unit: sec-file-xfer-queue.service
         scope: user
         label: File Transfer Queue
-        note: "sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s) as its own MOVEit package using the service's queue defaults or a <file>.yml sidecar, moves it to sent/<service>/, and posts a Sent to ... line to #ops-support per file; month-end's weekly RTP funding report skips the wait (process-queue --file, run at drop time); failures stay queued, alert #ops-support once (daily reminder; the sent line marks recovery), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
+        note: "sends each file dropped in ../sec-file-xfer/outbox/<service>/ (settled 60s): nabankco as its own MOVEit package using the queue defaults or a <file>.yml sidecar, then a copy (copy_to) uploaded over SFTP by key (sft.nabankco.com:1022, host key pinned) to NABC's /ToNAB/Reports folder (nabankco-sftp) in the same run; moves each to sent/<service>/ and posts a Sent to ... line to #ops-support per delivery; month-end's weekly RTP funding report skips the wait (process-queue --file, run at drop time); failures stay queued, alert #ops-support once (daily reminder; the sent line marks recovery), open a support.opn.inc case (owner nabc) after 3 failed runs, and exit 1 (oneshot) — inactive (dead) is normal; runs only when triggered by timer"
       - unit: sec-file-xfer-check.service
         scope: user
         label: File Transfer Credentials Check
-        note: "on demand, no timer: xfer.py check-credentials in the queue's environment — SFT login, package rules, contact IDs, queue recipients, Slack read, support.opn.inc whoami; sends nothing; exit 1 if any check fails. Run: systemctl --user start sec-file-xfer-check.service (oneshot) — inactive (dead) is normal; runs only when started by hand"
+        note: "on demand, no timer: xfer.py check-credentials in the queue's environment — SFT login, package rules, contact IDs, queue recipients, SFTP key login and Reports folder, Slack read, support.opn.inc whoami; sends nothing; exit 1 if any check fails. Run: systemctl --user start sec-file-xfer-check.service (oneshot) — inactive (dead) is normal; runs only when started by hand"
 
   - name: local-host
     repo: .
